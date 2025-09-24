@@ -8,18 +8,18 @@ import {
     LogOut,
     Home
 } from 'lucide-react';
-import useAuthStore from '../../store/authStore';
+import useAuthStore from '../../auth/store/authStore';
 import { clsx } from 'clsx';
 
 // Importar componentes de las opciones del sidebar
-import EstudianteDashboard from './EstudianteDashboard';
-import MyCourses from './MyCourses';
-import MyGrades from './MyGrades';
-import Assignments from './Assignments';
-import Schedule from './Schedule';
-import Profile from './Profile';
+import Dashboard from '../components/Dashboard';
+import MyCourses from '../components/MyCourses';
+import MyGrades from '../components/MyGrades';
+import Assignments from '../components/Assignments';
+import Schedule from '../components/Schedule';
+import Profile from '../components/Profile';
 
-const EstudianteLayout = () => {
+const StudentPage = () => {
     const [activeSection, setActiveSection] = useState('dashboard');
     const { user, logout } = useAuthStore();
 
@@ -32,7 +32,7 @@ const EstudianteLayout = () => {
             id: 'dashboard',
             label: 'Dashboard',
             icon: Home,
-            component: EstudianteDashboard
+            component: Dashboard
         },
         {
             id: 'courses',
@@ -132,4 +132,4 @@ const EstudianteLayout = () => {
     );
 };
 
-export default EstudianteLayout;
+export default StudentPage;

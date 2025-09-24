@@ -1,16 +1,16 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import useAuthStore from './store/authStore';
+import useAuthStore from './modules/auth/store/authStore';
 
 // Componentes de autenticación
-import Login from './components/Auth/Login';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
-import Unauthorized from './components/Common/Unauthorized';
+import Login from './modules/auth/pages/Login';
+import ProtectedRoute from './shared/components/ProtectedRoute';
+import Unauthorized from './shared/components/Unauthorized';
 
-// Layouts
-import AdminLayout from './pages/Admin/AdminLayout';
-import DocenteLayout from './pages/Docente/DocenteLayout';
-import EstudianteLayout from './pages/Estudiante/EstudianteLayout';
+// Pages for Module
+import AdminPage from './modules/admin/pages/AdminPage';
+import DocentePage from './modules/teacher/pages/DocentePage';
+import StudentPage from './modules/student/pages/Studentpage';
 
 function App() {
     const { isAuthenticated, user } = useAuthStore();
@@ -52,7 +52,7 @@ function App() {
                     path="/admin/*"
                     element={
                         <ProtectedRoute requiredRoles={['admin']}>
-                            <AdminLayout />
+                            <AdminPage />
                         </ProtectedRoute>
                     }
                 />
@@ -62,7 +62,7 @@ function App() {
                     path="/docente/*"
                     element={
                         <ProtectedRoute requiredRoles={['docente']}>
-                            <DocenteLayout />
+                            <DocentePage />
                         </ProtectedRoute>
                     }
                 />
@@ -72,7 +72,7 @@ function App() {
                     path="/estudiante/*"
                     element={
                         <ProtectedRoute requiredRoles={['estudiante']}>
-                            <EstudianteLayout />
+                            <StudentPage />
                         </ProtectedRoute>
                     }
                 />

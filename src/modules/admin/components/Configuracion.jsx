@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
 
-const SystemSettings = () => {
+const Configuracion = () => {
     return (
         <div className="p-6">
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -23,4 +23,4 @@ const SystemSettings = () => {
     );
 };
 
-export default SystemSettings;
+export default Configuracion;

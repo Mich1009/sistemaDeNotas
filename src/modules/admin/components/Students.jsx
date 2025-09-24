@@ -1,7 +1,7 @@
 import React from 'react';
 import { GraduationCap } from 'lucide-react';
 
-const StudentManagement = () => {
+const Students = () => {
     return (
         <div className="p-6">
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -23,4 +23,4 @@ const StudentManagement = () => {
     );
 };
 
-export default StudentManagement;
+export default Students;

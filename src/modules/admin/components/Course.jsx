@@ -1,7 +1,7 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
 
-const CourseManagement = () => {
+const Courses = () => {
     return (
         <div className="p-6">
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -23,4 +23,4 @@ const CourseManagement = () => {
     );
 };
 
-export default CourseManagement;
+export default Courses;

@@ -1,26 +1,25 @@
 import { useState } from 'react';
 import {
-    Users,
     BookOpen,
-    GraduationCap,
     FileText,
-    Settings,
+    Calendar,
+    Award,
     BarChart3,
     LogOut,
     Home
 } from 'lucide-react';
-import useAuthStore from '../../store/authStore';
+import useAuthStore from '../../auth/store/authStore';
 import { clsx } from 'clsx';
 
 // Importar componentes de las opciones del sidebar
-import AdminDashboard from './AdminDashboard';
-import UserManagement from './UserManagement';
-import CourseManagement from './CourseManagement';
-import StudentManagement from './StudentManagement';
-import Reports from './Reports';
-import SystemSettings from './SystemSettings';
+import Dashboard from '../components/Dashboard';
+import MyCourses from '../components/MyCourses';
+import StudentGrades from '../components/StudentGrades';
+import Assignments from '../components/Assignments';
+import Schedule from '../components/Schedule';
+import TeacherReports from '../components/TeacherReports';
 
-const AdminLayout = () => {
+const DocentePage = () => {
     const [activeSection, setActiveSection] = useState('dashboard');
     const { user, logout } = useAuthStore();
 
@@ -33,41 +32,41 @@ const AdminLayout = () => {
             id: 'dashboard',
             label: 'Dashboard',
             icon: Home,
-            component: AdminDashboard
-        },
-        {
-            id: 'users',
-            label: 'Usuarios',
-            icon: Users,
-            component: UserManagement
+            component: Dashboard
         },
         {
             id: 'courses',
-            label: 'Cursos',
+            label: 'Mis Cursos',
             icon: BookOpen,
-            component: CourseManagement
+            component: MyCourses
         },
         {
-            id: 'students',
-            label: 'Estudiantes',
-            icon: GraduationCap,
-            component: StudentManagement
+            id: 'grades',
+            label: 'Calificaciones',
+            icon: Award,
+            component: StudentGrades
+        },
+        {
+            id: 'assignments',
+            label: 'Tareas y Evaluaciones',
+            icon: FileText,
+            component: Assignments
+        },
+        {
+            id: 'schedule',
+            label: 'Horarios',
+            icon: Calendar,
+            component: Schedule
         },
         {
             id: 'reports',
             label: 'Reportes',
-            icon: FileText,
-            component: Reports
-        },
-        {
-            id: 'settings',
-            label: 'Configuración',
-            icon: Settings,
-            component: SystemSettings
+            icon: BarChart3,
+            component: TeacherReports
         }
     ];
 
-    const ActiveComponent = menuItems.find(item => item.id === activeSection)?.component || AdminDashboard;
+    const ActiveComponent = menuItems.find(item => item.id === activeSection)?.component || DocenteDashboard;
 
     return (
         <div className="flex h-screen bg-gray-100">
@@ -81,8 +80,8 @@ const AdminLayout = () => {
                     <p className="text-sm text-secondary-600 mt-1">
                         {user?.first_name} {user?.last_name}
                     </p>
-                    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium mt-2 bg-red-100 text-red-800">
-                        Admin
+                    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium mt-2 bg-blue-100 text-blue-800">
+                        Docente
                     </span>
                 </div>
 
@@ -133,4 +132,4 @@ const AdminLayout = () => {
     );
 };
 
-export default AdminLayout;
+export default DocentePage;

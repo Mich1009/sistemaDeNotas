@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import useAuthStore from '../../store/authStore';
-import { academicService, gradesService } from '../../services/api';
+import useAuthStore from '../../auth/store/authStore';
+import { academicService, gradesService } from '../services/apiStudent';
 
 const EstudianteDashboard = () => {
   const { user } = useAuthStore();
