@@ -7,117 +7,104 @@ import Login from './components/Auth/Login';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Unauthorized from './components/Common/Unauthorized';
 
-// Layout
-import Layout from './components/Layout/Layout';
-
-// Dashboards
-import AdminDashboard from './pages/Admin/AdminDashboard';
-import DocenteDashboard from './pages/Docente/DocenteDashboard';
-import EstudianteDashboard from './pages/Estudiante/EstudianteDashboard';
+// Layouts
+import AdminLayout from './pages/Admin/AdminLayout';
+import DocenteLayout from './pages/Docente/DocenteLayout';
+import EstudianteLayout from './pages/Estudiante/EstudianteLayout';
 
 function App() {
-  const { isAuthenticated, user } = useAuthStore();
+    const { isAuthenticated, user } = useAuthStore();
 
-  // Componente para redirigir al dashboard correcto según el rol
-  const DashboardRedirect = () => {
-    if (!isAuthenticated || !user) {
-      return <Navigate to="/login" replace />;
-    }
+    // Componente para redirigir al dashboard correcto según el rol
+    const DashboardRedirect = () => {
+        if (!isAuthenticated || !user) {
+            return <Navigate to="/login" replace />;
+        }
 
-    const roleRoutes = {
-      admin: '/admin/dashboard',
-      docente: '/docente/dashboard',
-      estudiante: '/estudiante/dashboard',
+        const roleRoutes = {
+            admin: '/admin',
+            docente: '/docente',
+            estudiante: '/estudiante',
+        };
+
+        return <Navigate to={roleRoutes[user.role] || '/login'} replace />;
     };
 
-    return <Navigate to={roleRoutes[user.role] || '/login'} replace />;
-  };
+    return (
+        <Router>
+            <Routes>
+                {/* Ruta de login */}
+                <Route path="/login" element={<Login />} />
 
-  return (
-    <Router>
-      <div className="App">
-        <Routes>
-          {/* Ruta de login */}
-          <Route path="/login" element={<Login />} />
-          
-          {/* Ruta de acceso no autorizado */}
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          
-          {/* Redirección del dashboard principal */}
-          <Route path="/dashboard" element={<DashboardRedirect />} />
-          
-          {/* Rutas protegidas con layout */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          > 
-            {/* Ruta por defecto - redirigir al dashboard */}
-            <Route index element={<DashboardRedirect />} />
-            
-            {/* Rutas de Administrador */}
-            <Route
-              path="admin/dashboard"
-              element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
+                {/* Ruta de acceso no autorizado */}
+                <Route path="/unauthorized" element={<Unauthorized />} />
+
+                {/* Ruta por defecto - redirigir al dashboard */}
+                <Route path="/" element={<DashboardRedirect />} />
+
+                {/* Redirección del dashboard principal */}
+                <Route path="/dashboard" element={<DashboardRedirect />} />
+
+                {/* Rutas protegidas */}
+                
+                {/* Rutas de Administrador */}
+                <Route
+                    path="/admin/*"
+                    element={
+                        <ProtectedRoute requiredRoles={['admin']}>
+                            <AdminLayout />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Rutas de Docente */}
+                <Route
+                    path="/docente/*"
+                    element={
+                        <ProtectedRoute requiredRoles={['docente']}>
+                            <DocenteLayout />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Rutas de Estudiante */}
+                <Route
+                    path="/estudiante/*"
+                    element={
+                        <ProtectedRoute requiredRoles={['estudiante']}>
+                            <EstudianteLayout />
+                        </ProtectedRoute>
+                    }
+                />
+            </Routes>
+
+            {/* Configuración global de notificaciones */}
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 2000,
+                    style: {
+                        background: '#363636',
+                        color: '#fff',
+                    },
+                    success: {
+                        duration: 3000,
+                        theme: {
+                            primary: '#4ade80',
+                            secondary: '#black',
+                        },
+                    },
+                    error: {
+                        duration: 5000,
+                        theme: {
+                            primary: '#ef4444',
+                            secondary: '#black',
+                        },
+                    },
+                }}
             />
-            
-            {/* Rutas de Docente */}
-            <Route
-              path="docente/dashboard"
-              element={
-                <ProtectedRoute requiredRoles={['docente']}>
-                  <DocenteDashboard />
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Rutas de Estudiante */}
-            <Route
-              path="estudiante/dashboard"
-              element={
-                <ProtectedRoute requiredRoles={['estudiante']}>
-                  <EstudianteDashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
-        </Routes>
-        
-        {/* Configuración global de notificaciones */}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
-              duration: 3000,
-              theme: {
-                primary: '#4ade80',
-                secondary: '#black',
-              },
-            },
-            error: {
-              duration: 5000,
-              theme: {
-                primary: '#ef4444',
-                secondary: '#black',
-              },
-            },
-          }}
-        />
-      </div>
-    </Router>
-  );
+        </Router>
+    );
 }
 
 export default App;
