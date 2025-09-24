@@ -11,9 +11,9 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { userService, academicService, gradesService } from '../../services/api';
+import { userService, academicService, gradesService } from '../services/apiAdmin';
 
-const AdminDashboard = () => {
+const Dashboard = () => {
     const [stats, setStats] = useState({
         totalUsers: 0,
         totalCourses: 0,
@@ -224,4 +224,4 @@ const AdminDashboard = () => {
     );
 };
 
-export default AdminDashboard;
+export default Dashboard;

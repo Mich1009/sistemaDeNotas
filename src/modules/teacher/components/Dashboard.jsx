@@ -11,10 +11,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import useAuthStore from '../../store/authStore';
-import { academicService, gradesService } from '../../services/api';
+import useAuthStore from '../../auth/store/authStore';
+import { academicService, gradesService } from '../services/apiTeacher';
 
-const DocenteDashboard = () => {
+const Dashboard = () => {
   const { user } = useAuthStore();
   const [stats, setStats] = useState({
     myCourses: [],
@@ -275,4 +275,4 @@ const DocenteDashboard = () => {
   );
 };
 
-export default DocenteDashboard;
+export default Dashboard;

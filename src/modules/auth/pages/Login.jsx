@@ -3,8 +3,8 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, LogIn, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
-import useAuthStore from '../../store/authStore';
-import { authService } from '../../services/api';
+import useAuthStore from '../store/authStore';
+import { authService } from '../services/apiAuth';
 
 const Login = () => {
   const navigate = useNavigate();
