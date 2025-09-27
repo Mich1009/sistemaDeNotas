@@ -2,6 +2,7 @@ import React from 'react';
 import { BookOpen } from 'lucide-react';
 
 const MyCourses = () => {
+    
     return (
         <div className="p-6">
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
