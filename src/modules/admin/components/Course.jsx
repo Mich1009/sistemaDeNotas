@@ -1,26 +1,66 @@
-import React from 'react';
-import { BookOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+    BookOpen, 
+    Calendar, 
+    GraduationCap
+} from 'lucide-react';
+import CursosManager from './CursosManager';
+import CiclosManager from './CiclosManager';
 
-const Courses = () => {
+const Course = () => {
+
+    const [activeTab, setActiveTab] = useState('cursos');
+
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'cursos':
+                return <CursosManager />;
+            case 'ciclos':
+                return <CiclosManager />;
+            default:
+                return <CursosManager />;
+        }
+    };
+
     return (
-        <div className="p-6">
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                <BookOpen size={64} className="mx-auto text-green-500 mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    Gestión de Cursos
-                </h2>
-                <p className="text-gray-600 mb-4">
-                    Estás en la sección de Gestión de Cursos del panel de administración.
-                </p>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-green-800 font-medium">
-                        Aquí podrás administrar todos los cursos del sistema, crear nuevos cursos, 
-                        editar información de cursos existentes, asignar docentes y gestionar el contenido académico.
+        <div className="space-y-6 p-3">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-secondary-900">Gestión Académica</h1>
+                    <p className="text-secondary-600 mt-2">
+                        Administra cursos y ciclos del programa de Desarrollo de Software
                     </p>
                 </div>
             </div>
+
+            {/* Tabs */}
+            <div className="border-b border-secondary-200">
+                <nav className="-mb-px flex space-x-8">
+                    {[
+                        { id: 'cursos', label: 'Cursos', icon: BookOpen },
+                        { id: 'ciclos', label: 'Ciclos', icon: Calendar }
+                    ].map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            onClick={() => setActiveTab(id)}
+                            className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === id
+                                    ? 'border-primary-500 text-primary-600'
+                                    : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            <span>{label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
+
+            {/* Content */}
+            {renderContent()}
         </div>
     );
 };
 
-export default Courses;
+export default Course;

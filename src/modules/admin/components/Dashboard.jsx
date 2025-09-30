@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Users,
     BookOpen,
@@ -11,54 +11,23 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { userService, academicService, gradesService } from '../services/apiAdmin';
+import { useDashboard } from '../hooks';
 
 const Dashboard = () => {
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        totalCourses: 0,
-        totalStudents: 0,
-        totalTeachers: 0,
-        recentActivity: []
-    });
-    const [loading, setLoading] = useState(true);
+    const { dashboardData, loading, error, refreshDashboard } = useDashboard();
 
-    useEffect(() => {
-        loadDashboardData();
-    }, []);
-
-    const loadDashboardData = async () => {
-        try {
-            setLoading(true);
-
-            // Cargar estadísticas básicas
-            const [users, courses] = await Promise.all([
-                userService.getUsers(),
-                academicService.getCourses()
-            ]);
-
-            const students = users.filter(user => user.role === 'estudiante');
-            const teachers = users.filter(user => user.role === 'docente');
-
-            setStats({
-                totalUsers: users.length,
-                totalCourses: courses.length,
-                totalStudents: students.length,
-                totalTeachers: teachers.length,
-                recentActivity: [
-                    { id: 1, action: 'Nuevo estudiante registrado', time: '2 horas ago' },
-                    { id: 2, action: 'Curso actualizado', time: '4 horas ago' },
-                    { id: 3, action: 'Notas cargadas', time: '1 día ago' }
-                ]
-            });
-
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-            toast.error('Error al cargar los datos del dashboard');
-        } finally {
-            setLoading(false);
+    // Show error toast if there's an error
+    React.useEffect(() => {
+        if (error) {
+            toast.error(String(error));
         }
-    };
+    }, [error]);
+
+    const recentActivity = [
+        { id: 1, action: 'Nuevo estudiante registrado', time: '2 horas ago' },
+        { id: 2, action: 'Curso actualizado', time: '4 horas ago' },
+        { id: 3, action: 'Notas cargadas', time: '1 día ago' }
+    ];
 
     const StatCard = ({ title, value, icon: Icon, color, link }) => (
         <Link to={link} className="block">
@@ -95,7 +64,7 @@ const Dashboard = () => {
     );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-3">
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-secondary-900">Dashboard Administrativo</h1>
@@ -107,31 +76,31 @@ const Dashboard = () => {
             {/* Estadísticas principales */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Total Usuarios"
-                    value={stats.totalUsers}
-                    icon={Users}
-                    color="bg-blue-500"
-                    link="/admin/users"
-                />
-                <StatCard
-                    title="Estudiantes"
-                    value={stats.totalStudents}
+                    title="Total Estudiantes"
+                    value={dashboardData.totalEstudiantes}
                     icon={GraduationCap}
                     color="bg-green-500"
-                    link="/admin/users?role=estudiante"
+                    link="/admin/students"
                 />
                 <StatCard
                     title="Docentes"
-                    value={stats.totalTeachers}
+                    value={dashboardData.totalDocentes}
                     icon={Users}
                     color="bg-purple-500"
-                    link="/admin/users?role=docente"
+                    link="/admin/docentes"
                 />
                 <StatCard
                     title="Cursos"
-                    value={stats.totalCourses}
+                    value={dashboardData.totalCursos}
                     icon={BookOpen}
                     color="bg-orange-500"
+                    link="/admin/courses"
+                />
+                <StatCard
+                    title="Carreras"
+                    value={dashboardData.totalCarreras}
+                    icon={BookOpen}
+                    color="bg-blue-500"
                     link="/admin/courses"
                 />
             </div>
@@ -204,7 +173,7 @@ const Dashboard = () => {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {stats.recentActivity.map((activity) => (
+                                {recentActivity.map((activity) => (
                                     <div key={activity.id} className="flex items-center space-x-4">
                                         <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
                                         <div className="flex-1">
