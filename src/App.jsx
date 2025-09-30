@@ -7,10 +7,8 @@ import Login from './modules/auth/pages/Login';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import Unauthorized from './shared/components/Unauthorized';
 
-// Pages for Module
-import AdminPage from './modules/admin/pages/AdminPage';
-import DocentePage from './modules/teacher/pages/DocentePage';
-import StudentPage from './modules/student/pages/Studentpage';
+// Página unificada para todos los roles
+import DashboardPage from './shared/pages/DashboardPage';
 
 function App() {
     const { isAuthenticated, user } = useAuthStore();
@@ -45,14 +43,14 @@ function App() {
                 {/* Redirección del dashboard principal */}
                 <Route path="/dashboard" element={<DashboardRedirect />} />
 
-                {/* Rutas protegidas */}
+                {/* Rutas protegidas - Página unificada para todos los roles */}
                 
                 {/* Rutas de Administrador */}
                 <Route
                     path="/admin/*"
                     element={
                         <ProtectedRoute requiredRoles={['admin']}>
-                            <AdminPage />
+                            <DashboardPage />
                         </ProtectedRoute>
                     }
                 />
@@ -62,7 +60,7 @@ function App() {
                     path="/docente/*"
                     element={
                         <ProtectedRoute requiredRoles={['docente']}>
-                            <DocentePage />
+                            <DashboardPage />
                         </ProtectedRoute>
                     }
                 />
@@ -72,7 +70,7 @@ function App() {
                     path="/estudiante/*"
                     element={
                         <ProtectedRoute requiredRoles={['estudiante']}>
-                            <StudentPage />
+                            <DashboardPage />
                         </ProtectedRoute>
                     }
                 />

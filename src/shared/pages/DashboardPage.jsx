@@ -1,26 +1,10 @@
 import { useState } from 'react';
-import {
-    Users,
-    BookOpen,
-    GraduationCap,
-    FileText,
-    Settings,
-    BarChart3,
-    LogOut,
-    Home
-} from 'lucide-react';
-import useAuthStore from '../../auth/store/authStore';
+import { LogOut } from 'lucide-react';
+import useAuthStore from '../../modules/auth/store/authStore';
 import { clsx } from 'clsx';
+import { getMenuItemsByRole, getRoleConfig } from '../config/menuConfig';
 
-// Importar componentes de las opciones del sidebar
-import Dashboard from '../components/Dashboard';;
-import Docentes from '../components/Docentes';
-import Courses from '../components/Course';
-import Students from '../components/Students';
-import Reports from '../components/Reports';
-import Configuracion from '../components/Configuracion';
-
-const AdminPage = () => {
+const DashboardPage = () => {
     const [activeSection, setActiveSection] = useState('dashboard');
     const { user, logout } = useAuthStore();
 
@@ -28,46 +12,20 @@ const AdminPage = () => {
         logout();
     };
 
-    const menuItems = [
-        {
-            id: 'dashboard',
-            label: 'Dashboard',
-            icon: Home,
-            component: Dashboard
-        },
-        {
-            id: 'docentes',
-            label: 'Docentes',
-            icon: Users,
-            component: Docentes
-        },
-        {
-            id: 'courses',
-            label: 'Cursos',
-            icon: BookOpen,
-            component: Courses
-        },
-        {
-            id: 'students',
-            label: 'Estudiantes',
-            icon: GraduationCap,
-            component: Students
-        },
-        {
-            id: 'reports',
-            label: 'Reportes',
-            icon: FileText,
-            component: Reports
-        },
-        {
-            id: 'settings',
-            label: 'Configuración',
-            icon: Settings,
-            component: Configuracion
-        }
-    ];
+    // Obtener configuración basada en el rol del usuario
+    const menuItems = getMenuItemsByRole(user?.role);
+    const roleConfig = getRoleConfig(user?.role);
+    
+    // Encontrar el componente activo
+    const ActiveComponent = menuItems.find(item => item.id === activeSection)?.component;
 
-    const ActiveComponent = menuItems.find(item => item.id === activeSection)?.component || AdminDashboard;
+    // Si no hay componente activo, mostrar el dashboard por defecto
+    if (!ActiveComponent) {
+        const defaultDashboard = menuItems.find(item => item.id === 'dashboard')?.component;
+        if (defaultDashboard) {
+            setActiveSection('dashboard');
+        }
+    }
 
     return (
         <div className="flex h-screen bg-gray-100">
@@ -81,8 +39,8 @@ const AdminPage = () => {
                     <p className="text-sm text-secondary-600 mt-1">
                         {user?.first_name} {user?.last_name}
                     </p>
-                    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium mt-2 bg-red-100 text-red-800">
-                        Admin
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-2 ${roleConfig.badgeColor}`}>
+                        {roleConfig.label}
                     </span>
                 </div>
 
@@ -126,11 +84,11 @@ const AdminPage = () => {
             {/* Main Content */}
             <div className="flex-1 overflow-hidden">
                 <div className="h-full overflow-y-auto">
-                    <ActiveComponent />
+                    {ActiveComponent && <ActiveComponent />}
                 </div>
             </div>
         </div>
     );
 };
 
-export default AdminPage;
+export default DashboardPage;

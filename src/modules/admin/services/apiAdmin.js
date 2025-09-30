@@ -1,85 +1,236 @@
 import api from "../../../shared/utils/axiosInstance";
 
-// Servicios de usuarios (para admin)
-export const userService = {
-    getUsers: async (params = {}) => {
-        const response = await api.get('/users', { params });
+// Servicios de Dashboard
+export const dashboardService = {
+    getDashboard: async () => {
+        const response = await api.get('/admin/dashboard');
         return response.data;
     },
 
-    createUser: async (userData) => {
-        const response = await api.post('/users', userData);
+    getEstadisticasGenerales: async () => {
+        const response = await api.get('/admin/reportes/estadisticas-generales');
         return response.data;
-    },
-
-    updateUser: async (userId, userData) => {
-        const response = await api.put(`/users/${userId}`, userData);
-        return response.data;
-    },
-
-    deleteUser: async (userId) => {
-        const response = await api.delete(`/users/${userId}`);
-        return response.data;
-    },
+    }
 };
 
-// Servicios académicos (para admin)
-export const academicService = {
-    getCourses: async (params = {}) => {
-        const response = await api.get('/courses', { params });
+// Servicios de Estudiantes
+export const estudiantesService = {
+    getEstudiantes: async (params = {}) => {
+        const response = await api.get('/admin/estudiantes', { params });
         return response.data;
     },
 
-    createCourse: async (courseData) => {
-        const response = await api.post('/courses', courseData);
+    getEstudiante: async (estudianteId) => {
+        const response = await api.get(`/admin/estudiantes/${estudianteId}`);
         return response.data;
     },
 
-    updateCourse: async (courseId, courseData) => {
-        const response = await api.put(`/courses/${courseId}`, courseData);
+    createEstudiante: async (estudianteData) => {
+        const response = await api.post('/admin/estudiantes', estudianteData);
         return response.data;
     },
 
-    deleteCourse: async (courseId) => {
-        const response = await api.delete(`/courses/${courseId}`);
+    updateEstudiante: async (estudianteId, estudianteData) => {
+        const response = await api.put(`/admin/estudiantes/${estudianteId}`, estudianteData);
         return response.data;
     },
 
-    getEnrollments: async (params = {}) => {
-        const response = await api.get('/enrollments', { params });
+    deleteEstudiante: async (estudianteId) => {
+        const response = await api.delete(`/admin/estudiantes/${estudianteId}`);
         return response.data;
     },
 
-    createEnrollment: async (enrollmentData) => {
-        const response = await api.post('/enrollments', enrollmentData);
+    activateEstudiante: async (estudianteId) => {
+        const response = await api.patch(`/admin/estudiantes/${estudianteId}/activate`);
         return response.data;
     },
 
-    deleteEnrollment: async (enrollmentId) => {
-        const response = await api.delete(`/enrollments/${enrollmentId}`);
+    getEstudianteNotas: async (estudianteId) => {
+        const response = await api.get(`/admin/estudiantes/${estudianteId}/notas`);
         return response.data;
     },
+
+    getEstudianteMatriculas: async (estudianteId) => {
+        const response = await api.get(`/admin/estudiantes/${estudianteId}/matriculas`);
+        return response.data;
+    },
+
+    searchEstudianteByDni: async (dni) => {
+        const response = await api.get(`/admin/estudiantes/search/${dni}`);
+        return response.data;
+    }
 };
 
-// Servicios de calificaciones (para admin)
-export const gradesService = {
-    getGrades: async (params = {}) => {
-        const response = await api.get('/grades', { params });
+// Servicios de Docentes
+export const docentesService = {
+    getDocentes: async (params = {}) => {
+        const response = await api.get('/admin/docentes', { params });
         return response.data;
     },
 
-    createGrade: async (gradeData) => {
-        const response = await api.post('/grades', gradeData);
+    getDocente: async (docenteId) => {
+        const response = await api.get(`/admin/docentes/${docenteId}`);
         return response.data;
     },
 
-    updateGrade: async (gradeId, gradeData) => {
-        const response = await api.put(`/grades/${gradeId}`, gradeData);
+    createDocente: async (docenteData) => {
+        const response = await api.post('/admin/docentes', docenteData);
         return response.data;
     },
 
-    deleteGrade: async (gradeId) => {
-        const response = await api.delete(`/grades/${gradeId}`);
+    updateDocente: async (docenteId, docenteData) => {
+        const response = await api.put(`/admin/docentes/${docenteId}`, docenteData);
         return response.data;
     },
+
+    deleteDocente: async (docenteId) => {
+        const response = await api.delete(`/admin/docentes/${docenteId}`);
+        return response.data;
+    },
+
+    getDocenteCursos: async (docenteId) => {
+        const response = await api.get(`/admin/docentes/${docenteId}/cursos`);
+        return response.data;
+    },
+
+    assignCursoToDocente: async (docenteId, cursoId) => {
+        const response = await api.post(`/admin/docentes/${docenteId}/cursos/${cursoId}`);
+        return response.data;
+    }
 };
+
+// Servicios de Cursos y Ciclos
+export const cursosService = {
+    // Ciclos (ya no hay carreras)
+    getCiclos: async () => {
+        const response = await api.get('/admin/cursos-ciclos/ciclos');
+        return response.data;
+    },
+
+    createCiclo: async (cicloData) => {
+        const response = await api.post('/admin/cursos-ciclos/ciclos', cicloData);
+        return response.data;
+    },
+
+    updateCiclo: async (cicloId, cicloData) => {
+        const response = await api.put(`/admin/cursos-ciclos/ciclos/${cicloId}`, cicloData);
+        return response.data;
+    },
+
+    deleteCiclo: async (cicloId) => {
+        const response = await api.delete(`/admin/cursos-ciclos/ciclos/${cicloId}`);
+        return response.data;
+    },
+
+    // Cursos
+    getCursos: async (params = {}) => {
+        const response = await api.get('/admin/cursos-ciclos/cursos', { params });
+        return response.data;
+    },
+
+    getCurso: async (cursoId) => {
+        const response = await api.get(`/admin/cursos-ciclos/cursos/${cursoId}`);
+        return response.data;
+    },
+
+    createCurso: async (cursoData) => {
+        const response = await api.post('/admin/cursos-ciclos/cursos', cursoData);
+        return response.data;
+    },
+
+    updateCurso: async (cursoId, cursoData) => {
+        const response = await api.put(`/admin/cursos-ciclos/cursos/${cursoId}`, cursoData);
+        return response.data;
+    },
+
+    deleteCurso: async (cursoId) => {
+        const response = await api.delete(`/admin/cursos-ciclos/cursos/${cursoId}`);
+        return response.data;
+    },
+
+    asignarDocenteCurso: async (cursoId, docenteId) => {
+        const response = await api.post(`/admin/cursos-ciclos/cursos/${cursoId}/docente/${docenteId}`);
+        return response.data;
+    },
+
+    desasignarDocenteCurso: async (cursoId) => {
+        const response = await api.delete(`/admin/cursos-ciclos/cursos/${cursoId}/docente`);
+        return response.data;
+    }
+};
+
+// Servicios de Notas
+export const notasService = {
+    getNotasEstudiante: async (estudianteId, params = {}) => {
+        const response = await api.get(`/admin/notas/estudiante/${estudianteId}`, { params });
+        return response.data;
+    },
+
+    getNotasCurso: async (cursoId, params = {}) => {
+        const response = await api.get(`/admin/notas/curso/${cursoId}`, { params });
+        return response.data;
+    },
+
+    registrarNota: async (notaData) => {
+        const response = await api.post('/admin/notas', notaData);
+        return response.data;
+    },
+
+    actualizarNota: async (notaId, notaData) => {
+        const response = await api.put(`/admin/notas/${notaId}`, notaData);
+        return response.data;
+    },
+
+    eliminarNota: async (notaId) => {
+        const response = await api.delete(`/admin/notas/${notaId}`);
+        return response.data;
+    },
+
+    getHistorialNota: async (notaId) => {
+        const response = await api.get(`/admin/notas/${notaId}/historial`);
+        return response.data;
+    },
+
+    getPromediosEstudiante: async (estudianteId) => {
+        const response = await api.get(`/admin/notas/estudiante/${estudianteId}/promedios`);
+        return response.data;
+    }
+};
+
+// Servicios de Reportes
+export const reportesService = {
+    getRendimientoEstudiantes: async (params = {}) => {
+        const response = await api.get('/admin/reportes/rendimiento-estudiantes', { params });
+        return response.data;
+    },
+
+    getRendimientoPorCurso: async (params = {}) => {
+        const response = await api.get('/admin/reportes/rendimiento-por-curso', { params });
+        return response.data;
+    },
+
+    exportarEstudiantesExcel: async (params = {}) => {
+        const response = await api.get('/admin/reportes/exportar/estudiantes', { 
+            params,
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    exportarDocentesExcel: async () => {
+        const response = await api.get('/admin/reportes/exportar/docentes', {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    exportarNotasExcel: async (params = {}) => {
+        const response = await api.get('/admin/reportes/exportar/notas', { 
+            params,
+            responseType: 'blob'
+        });
+        return response.data;
+    }
+};
+
+// Exportar todos los servicios
