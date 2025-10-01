@@ -17,6 +17,7 @@ import Docentes from '../../modules/admin/components/Docentes';
 import Courses from '../../modules/admin/components/Course';
 import Students from '../../modules/admin/components/Students';
 import AdminReports from '../../modules/admin/components/Reports';
+import Matriculas from '../../modules/admin/components/Matriculas';
 import Configuracion from '../../modules/admin/components/Configuracion';
 
 // Importar componentes de Teacher
@@ -52,6 +53,12 @@ export const menuConfigs = {
             label: 'Cursos y Ciclos',
             icon: BookOpen,
             component: Courses
+        },
+        {
+            id: 'matriculas',
+            label: 'Matriculas',
+            icon: GraduationCap,
+            component: Matriculas
         },
         {
             id: 'students',

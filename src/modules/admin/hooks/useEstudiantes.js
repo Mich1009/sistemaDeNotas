@@ -1,24 +1,61 @@
-import { useState, useEffect } from 'react';
-import { estudiantesService } from '../services/apiAdmin';
+import { useState, useEffect, useCallback } from 'react';
+import { estudiantesService, matriculasService } from '../services/apiAdmin';
 
 export const useEstudiantes = () => {
     const [estudiantes, setEstudiantes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchEstudiantes = async () => {
+    const fetchEstudiantes = useCallback(async (cicloId = null) => {
         try {
             setLoading(true);
             setError(null);
+            
+            // Siempre obtener TODOS los estudiantes (sin filtro por ciclo)
             const data = await estudiantesService.getEstudiantes();
-            setEstudiantes(data);
+            let estudiantesConEstado = data.users || [];
+            
+            // Si se proporciona un ciclo, obtener el estado de matrícula para cada estudiante
+            if (cicloId) {
+                const matriculas = await matriculasService.getMatriculas({ ciclo_id: cicloId });
+                console.log('Matriculas response:', matriculas); // Debug log
+                
+                const matriculasMap = new Map();
+                
+                // Verificar si la respuesta tiene la estructura correcta
+                const matriculasArray = matriculas.matriculas || matriculas.items || matriculas || [];
+                console.log('Matriculas array:', matriculasArray); // Debug log
+                
+                matriculasArray.forEach(matricula => {
+                    matriculasMap.set(matricula.estudiante_id, matricula);
+                });
+                
+                console.log('Matriculas map:', matriculasMap); // Debug log
+                
+                estudiantesConEstado = estudiantesConEstado.map(estudiante => ({
+                    ...estudiante,
+                    matriculado: matriculasMap.has(estudiante.id),
+                    matricula: matriculasMap.get(estudiante.id) || null
+                }));
+                
+                console.log('Estudiantes con estado:', estudiantesConEstado); // Debug log
+            } else {
+                // Si no hay filtro por ciclo, marcar todos como sin estado de matrícula específico
+                estudiantesConEstado = estudiantesConEstado.map(estudiante => ({
+                    ...estudiante,
+                    matriculado: null, // No se puede determinar sin un ciclo específico
+                    matricula: null
+                }));
+            }
+            
+            setEstudiantes(estudiantesConEstado);
         } catch (err) {
             setError(err.message || 'Error al cargar estudiantes');
             console.error('Error fetching estudiantes:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     const getEstudianteById = async (id) => {
         try {
@@ -67,14 +104,12 @@ export const useEstudiantes = () => {
         }
     };
 
-    const activateEstudiante = async (id) => {
+    const activateEstudiante = async (id, cicloId = null) => {
         try {
             setError(null);
-            const activatedEstudiante = await estudiantesService.activateEstudiante(id);
-            setEstudiantes(prev =>
-                prev.map(est => est.id === id ? activatedEstudiante : est)
-            );
-            return activatedEstudiante;
+            await estudiantesService.activateEstudiante(id);
+            // Refresh the list to get updated data
+            await fetchEstudiantes(cicloId);
         } catch (err) {
             setError(err.message || 'Error al activar estudiante');
             throw err;
@@ -115,8 +150,8 @@ export const useEstudiantes = () => {
         fetchEstudiantes();
     }, []);
 
-    const refreshEstudiantes = () => {
-        fetchEstudiantes();
+    const refreshEstudiantes = (cicloId = null) => {
+        fetchEstudiantes(cicloId);
     };
 
     return {
