@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     GraduationCap, 
     Plus, 
     Search, 
     Edit, 
-    Trash2, 
-    Eye, 
+    UserX, 
     UserCheck,
     Filter,
-    Download
+    Users
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEstudiantes } from '../hooks';
+import { useCiclos } from '../hooks/useCiclos';
+import EstudianteModal from './EstudianteModal';
 
 const Students = () => {
     const { 
@@ -23,28 +24,57 @@ const Students = () => {
         deleteEstudiante,
         activateEstudiante,
         searchEstudianteByDni,
-        refreshEstudiantes 
+        refreshEstudiantes,
+        fetchEstudiantes
     } = useEstudiantes();
 
+    const { 
+        ciclos, 
+        loading: ciclosLoading, 
+        getUltimoCiclo, 
+        getCiclosActivos 
+    } = useCiclos();
+
+    // Obtener ciclos activos como valor, no como función
+    const ciclosActivos = getCiclosActivos;
+
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [selectedCiclo, setSelectedCiclo] = useState(null);
+    const [filterMatricula, setFilterMatricula] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedEstudiante, setSelectedEstudiante] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
 
-    // Filter estudiantes based on search term and status
+    // Establecer el último ciclo como filtro por defecto
+    useEffect(() => {
+        if (ciclos.length > 0 && !selectedCiclo) {
+            const ultimoCiclo = getUltimoCiclo;
+            if (ultimoCiclo) {
+                setSelectedCiclo(ultimoCiclo.id);
+            }
+        }
+    }, [ciclos, selectedCiclo]);
+
+    // Cargar estudiantes cuando cambie el ciclo seleccionado
+    useEffect(() => {
+        if (selectedCiclo) {
+            fetchEstudiantes(selectedCiclo);
+        }
+    }, [selectedCiclo]);
+
+    // Filter estudiantes based on search term and matricula status
     const filteredEstudiantes = estudiantes.filter(estudiante => {
         const matchesSearch = 
-            estudiante.nombres?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            estudiante.apellidos?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            estudiante.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            estudiante.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             estudiante.dni?.includes(searchTerm) ||
             estudiante.email?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchesStatus = filterStatus === 'all' || 
-            (filterStatus === 'active' && estudiante.activo) ||
-            (filterStatus === 'inactive' && !estudiante.activo);
+        const matchesMatricula = filterMatricula === 'all' || 
+            (filterMatricula === 'matriculado' && estudiante.matriculado) ||
+            (filterMatricula === 'no_matriculado' && !estudiante.matriculado);
         
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesMatricula;
     });
 
     const handleCreateEstudiante = async (estudianteData) => {
@@ -69,80 +99,24 @@ const Students = () => {
     };
 
     const handleDeleteEstudiante = async (id) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este estudiante?')) {
+        if (window.confirm('¿Estás seguro de que deseas inactivar este estudiante?')) {
             try {
                 await deleteEstudiante(id);
-                toast.success('Estudiante eliminado exitosamente');
+                toast.success('Estudiante inactivado exitosamente');
             } catch (error) {
-                toast.error('Error al eliminar estudiante');
+                toast.error('Error al inactivar estudiante');
             }
         }
     };
 
     const handleActivateEstudiante = async (id) => {
         try {
-            await activateEstudiante(id);
+            await activateEstudiante(id, selectedCiclo);
             toast.success('Estudiante activado exitosamente');
         } catch (error) {
             toast.error('Error al activar estudiante');
         }
     };
-
-    const EstudianteCard = ({ estudiante }) => (
-        <div className="card p-6">
-            <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <GraduationCap className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-secondary-900">
-                            {estudiante.nombres} {estudiante.apellidos}
-                        </h3>
-                        <p className="text-sm text-secondary-600">DNI: {estudiante.dni}</p>
-                        <p className="text-sm text-secondary-600">{estudiante.email}</p>
-                        <div className="flex items-center mt-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                estudiante.activo 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
-                            }`}>
-                                {estudiante.activo ? 'Activo' : 'Inactivo'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => {
-                            setSelectedEstudiante(estudiante);
-                            setShowEditModal(true);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Editar"
-                    >
-                        <Edit className="w-4 h-4" />
-                    </button>
-                    {!estudiante.activo && (
-                        <button
-                            onClick={() => handleActivateEstudiante(estudiante.id)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Activar"
-                        >
-                            <UserCheck className="w-4 h-4" />
-                        </button>
-                    )}
-                    <button
-                        onClick={() => handleDeleteEstudiante(estudiante.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
 
     if (loading) {
         return (
@@ -153,7 +127,7 @@ const Students = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 p-3">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -186,13 +160,26 @@ const Students = () => {
                             />
                         </div>
                         <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
+                            value={selectedCiclo || ''}
+                            onChange={(e) => setSelectedCiclo(e.target.value)}
+                            className="px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            disabled={ciclosLoading}
+                        >
+                            <option value="">Seleccionar Ciclo</option>
+                            {ciclosActivos.map(ciclo => (
+                                <option key={ciclo.id} value={ciclo.id}>
+                                    {ciclo.nombre}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={filterMatricula}
+                            onChange={(e) => setFilterMatricula(e.target.value)}
                             className="px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         >
                             <option value="all">Todos</option>
-                            <option value="active">Activos</option>
-                            <option value="inactive">Inactivos</option>
+                            <option value="matriculado">Matriculados</option>
+                            <option value="no_matriculado">No Matriculados</option>
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -200,7 +187,7 @@ const Students = () => {
                             {filteredEstudiantes.length} estudiante(s) encontrado(s)
                         </span>
                         <button
-                            onClick={refreshEstudiantes}
+                            onClick={() => refreshEstudiantes(selectedCiclo)}
                             className="btn-secondary"
                         >
                             Actualizar
@@ -209,7 +196,7 @@ const Students = () => {
                 </div>
             </div>
 
-            {/* Students Grid */}
+            {/* Students Table */}
             {filteredEstudiantes.length === 0 ? (
                 <div className="card p-8 text-center">
                     <GraduationCap className="w-16 h-16 text-secondary-300 mx-auto mb-4" />
@@ -217,23 +204,139 @@ const Students = () => {
                         No se encontraron estudiantes
                     </h3>
                     <p className="text-secondary-600">
-                        {searchTerm || filterStatus !== 'all' 
+                        {searchTerm || filterMatricula !== 'all' 
                             ? 'Intenta ajustar los filtros de búsqueda'
                             : 'Comienza agregando tu primer estudiante'
                         }
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEstudiantes.map((estudiante) => (
-                        <EstudianteCard key={estudiante.id} estudiante={estudiante} />
-                    ))}
+                <div className="card overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-secondary-200">
+                            <thead className="bg-secondary-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        Estudiante
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        DNI
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        Email
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        Teléfono
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        Carrera
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        Estado Matrícula
+                                    </th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        Acciones
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-secondary-200">
+                                {filteredEstudiantes.map((estudiante) => (
+                                    <tr key={estudiante.id} className="hover:bg-secondary-50">
+                                        <td className="px-3 py-2 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                                    <GraduationCap className="w-5 h-5 text-purple-600" />
+                                                </div>
+                                                <div className='ml-4'>
+                                                    <div className="text-sm font-medium text-secondary-900">
+                                                        {estudiante.first_name} {estudiante.last_name}
+                                                    </div>
+                                                    {estudiante.direccion && (
+                                                        <div className="text-sm text-secondary-400">
+                                                            {estudiante.direccion}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
+                                            {estudiante.dni}
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
+                                            {estudiante.email}
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
+                                            {estudiante.phone || '-'}
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
+                                            {estudiante.carrera?.nombre || 'Sin asignar'}
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                estudiante.matriculado 
+                                                    ? 'bg-green-100 text-green-800' 
+                                                    : 'bg-red-100 text-red-800'
+                                            }`}>
+                                                {estudiante.matriculado ? 'Matriculado' : 'No Matriculado'}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex items-center justify-end space-x-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedEstudiante(estudiante);
+                                                        setShowEditModal(true);
+                                                    }}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                {!estudiante.is_active && (
+                                                    <button
+                                                        onClick={() => handleActivateEstudiante(estudiante.id)}
+                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                        title="Activar"
+                                                    >
+                                                        <UserCheck className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeleteEstudiante(estudiante.id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Inactivar"
+                                                >
+                                                    <UserX className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
-            {/* TODO: Add modals for create and edit */}
-            {/* CreateEstudianteModal */}
-            {/* EditEstudianteModal */}
+            {/* EstudianteModal para crear */}
+            <EstudianteModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSubmit={handleCreateEstudiante}
+                mode="create"
+            />
+            
+            {/* EstudianteModal para editar */}
+            <EstudianteModal
+                isOpen={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setSelectedEstudiante(null);
+                }}
+                onSubmit={handleUpdateEstudiante}
+                mode="edit"
+                initialData={selectedEstudiante}
+            />
         </div>
     );
 };

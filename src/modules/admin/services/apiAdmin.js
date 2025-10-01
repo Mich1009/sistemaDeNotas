@@ -41,7 +41,7 @@ export const estudiantesService = {
     },
 
     activateEstudiante: async (estudianteId) => {
-        const response = await api.patch(`/admin/estudiantes/${estudianteId}/activate`);
+        const response = await api.post(`/admin/estudiantes/${estudianteId}/activate`);
         return response.data;
     },
 
@@ -56,7 +56,7 @@ export const estudiantesService = {
     },
 
     searchEstudianteByDni: async (dni) => {
-        const response = await api.get(`/admin/estudiantes/search/${dni}`);
+        const response = await api.get(`/admin/estudiantes/search/dni/${dni}`);
         return response.data;
     }
 };
@@ -197,6 +197,51 @@ export const notasService = {
     }
 };
 
+// Servicios de Matrículas
+export const matriculasService = {
+    getMatriculas: async (params = {}) => {
+        const response = await api.get('/admin/matriculas', { params });
+        return response.data;
+    },
+
+    getMatricula: async (matriculaId) => {
+        const response = await api.get(`/admin/matriculas/${matriculaId}`);
+        return response.data;
+    },
+
+    createMatricula: async (matriculaData) => {
+        const response = await api.post('/admin/matriculas', matriculaData);
+        return response.data;
+    },
+
+    updateMatricula: async (matriculaId, matriculaData) => {
+        const response = await api.put(`/admin/matriculas/${matriculaId}`, matriculaData);
+        return response.data;
+    },
+
+    deleteMatricula: async (matriculaId) => {
+        const response = await api.delete(`/admin/matriculas/${matriculaId}`);
+        return response.data;
+    },
+
+    getMatriculasEstudiante: async (estudianteId) => {
+        const response = await api.get(`/admin/matriculas/estudiante/${estudianteId}`);
+        return response.data;
+    },
+
+    getCursosDisponibles: async (cicloId) => {
+        const response = await api.get(`/admin/matriculas/cursos-disponibles/${cicloId}`);
+        return response.data;
+    },
+
+    matricularEstudianteCiclo: async (estudianteId, cicloId, codigoMatricula) => {
+        const response = await api.post(`/admin/matriculas/estudiante/${estudianteId}/ciclo/${cicloId}`, {
+            codigo_matricula: codigoMatricula
+        });
+        return response.data;
+    }
+};
+
 // Servicios de Reportes
 export const reportesService = {
     getRendimientoEstudiantes: async (params = {}) => {
@@ -219,6 +264,13 @@ export const reportesService = {
 
     exportarDocentesExcel: async () => {
         const response = await api.get('/admin/reportes/exportar/docentes', {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    exportarCursosExcel: async () => {
+        const response = await api.get('/admin/reportes/exportar/cursos', {
             responseType: 'blob'
         });
         return response.data;
