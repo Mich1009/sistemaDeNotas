@@ -23,10 +23,11 @@ import Configuracion from '../../modules/admin/components/Configuracion';
 // Importar componentes de Teacher
 import TeacherDashboard from '../../modules/teacher/components/Dashboard';
 import MyCourses from '../../modules/teacher/components/MyCourses';
-import StudentGrades from '../../modules/teacher/components/StudentGrades';
+import Grades from '../../modules/teacher/components/Grades';
 import Assignments from '../../modules/teacher/components/Assignments';
 import TeacherSchedule from '../../modules/teacher/components/Schedule';
 import TeacherReports from '../../modules/teacher/components/TeacherReports';
+import TeacherProfile from '../../modules/teacher/components/Profile';
 
 // Importar componentes de Student
 import StudentDashboard from '../../modules/student/components/Dashboard';
@@ -96,7 +97,7 @@ export const menuConfigs = {
             id: 'grades',
             label: 'Calificaciones',
             icon: Award,
-            component: StudentGrades
+            component: Grades
         },
         {
             id: 'assignments',
@@ -115,6 +116,12 @@ export const menuConfigs = {
             label: 'Reportes',
             icon: BarChart3,
             component: TeacherReports
+        },
+        {
+            id: 'profile',
+            label: 'Mi Perfil',
+            icon: User,
+            component: TeacherProfile
         }
     ],
     estudiante: [
