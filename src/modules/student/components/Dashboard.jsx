@@ -12,16 +12,15 @@ import {
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../auth/store/authStore';
-import { academicService, gradesService } from '../services/apiStudent';
+import { academicService } from '../services/apiStudent';
 
 const EstudianteDashboard = () => {
   const { user } = useAuthStore();
-  const [stats, setStats] = useState({
-    enrolledCourses: [],
-    grades: [],
-    averageGrade: 0,
-    completedCourses: 0,
-    pendingAssignments: 0
+  const [dashboardData, setDashboardData] = useState({
+    estudiante_info: {},
+    cursos_actuales: [],
+    notas_recientes: [],
+    estadisticas: {}
   });
   const [loading, setLoading] = useState(true);
 
@@ -32,29 +31,8 @@ const EstudianteDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Cargar matrículas del estudiante
-      const enrollments = await academicService.getEnrollments();
-      const myEnrollments = enrollments.filter(enrollment => enrollment.estudiante_id === user.id);
-      
-      // Cargar notas del estudiante
-      const grades = await gradesService.getGrades();
-      const myGrades = grades.filter(grade => grade.estudiante_id === user.id);
-      
-      // Calcular promedio general
-      const validGrades = myGrades.filter(grade => grade.promedio !== null);
-      const averageGrade = validGrades.length > 0 
-        ? validGrades.reduce((sum, grade) => sum + grade.promedio, 0) / validGrades.length 
-        : 0;
-      
-      setStats({
-        enrolledCourses: myEnrollments,
-        grades: myGrades,
-        averageGrade: Math.round(averageGrade * 100) / 100,
-        completedCourses: validGrades.length,
-        pendingAssignments: 3 // Esto debería venir de la API
-      });
-
+      const response = await academicService.getDashboard();
+      setDashboardData(response);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       toast.error('Error al cargar los datos del dashboard');
@@ -91,27 +69,27 @@ const EstudianteDashboard = () => {
     </div>
   );
 
-  const CourseCard = ({ enrollment }) => {
-    const grade = stats.grades.find(g => g.curso_id === enrollment.curso_id);
-    const hasGrades = grade && (grade.nota1 || grade.nota2 || grade.nota3 || grade.nota4);
+  const CourseCard = ({ course }) => {
+    const grade = dashboardData.notas_recientes.find(g => g.curso_nombre === course.nombre);
+    const hasGrades = grade && (grade.nota_1 || grade.nota_2 || grade.nota_3 || grade.nota_4);
     
     return (
-      <Link to={`/estudiante/courses/${enrollment.curso_id}`} className="block">
+      <Link to={`/estudiante/courses/${course.id}`} className="block">
         <div className="card p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="font-semibold text-secondary-900 mb-2">
-                {enrollment.curso?.nombre || 'Curso'}
+                {course.nombre}
               </h3>
               <p className="text-sm text-secondary-600 mb-3">
-                {enrollment.curso?.descripcion || 'Sin descripción'}
+                {course.codigo} • {course.docente_nombre}
               </p>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-xs text-secondary-500">
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {enrollment.curso?.ciclo?.nombre || 'Sin ciclo'}
+                    {course.ciclo_nombre}
                   </div>
                   {grade?.promedio && (
                     <div className="flex items-center">
@@ -154,10 +132,10 @@ const EstudianteDashboard = () => {
     <div className="flex items-center justify-between p-4 border-l-4 border-primary-500 bg-primary-50 rounded-r-lg">
       <div>
         <h4 className="font-medium text-secondary-900">
-          {grade.curso?.nombre || 'Curso'}
+          {grade.curso_nombre}
         </h4>
         <p className="text-sm text-secondary-600">
-          Promedio: {grade.promedio || 'Sin calcular'}
+          {grade.curso_codigo} • {grade.docente_nombre}
         </p>
       </div>
       <div className="text-right">
@@ -165,7 +143,7 @@ const EstudianteDashboard = () => {
           {grade.promedio || '--'}
         </div>
         <div className="text-xs text-secondary-500">
-          {grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : 'Sin fecha'}
+          Promedio Final
         </div>
       </div>
     </div>
@@ -182,7 +160,7 @@ const EstudianteDashboard = () => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-secondary-900">
-          Bienvenido, {user?.first_name}
+          Bienvenido, {dashboardData.estudiante_info?.first_name || user?.first_name}
         </h1>
         <p className="text-secondary-600 mt-2">
           Revisa tu progreso académico y calificaciones
@@ -193,32 +171,32 @@ const EstudianteDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Cursos Matriculados"
-          value={stats.enrolledCourses.length}
+          value={dashboardData.estadisticas?.total_cursos || 0}
           icon={BookOpen}
           color="bg-blue-500"
           subtitle="Este ciclo"
         />
         <StatCard
           title="Promedio General"
-          value={stats.averageGrade || '--'}
+          value={dashboardData.estadisticas?.promedio_general || '--'}
           icon={TrendingUp}
           color="bg-green-500"
           subtitle="Todos los cursos"
-          status={stats.averageGrade ? getGradeStatus(stats.averageGrade) : null}
+          status={dashboardData.estadisticas?.promedio_general ? getGradeStatus(dashboardData.estadisticas.promedio_general) : null}
         />
         <StatCard
-          title="Cursos con Notas"
-          value={stats.completedCourses}
+          title="Cursos Aprobados"
+          value={dashboardData.estadisticas?.cursos_aprobados || 0}
           icon={Award}
           color="bg-purple-500"
-          subtitle="Calificados"
+          subtitle="Nota ≥ 11"
         />
         <StatCard
-          title="Tareas Pendientes"
-          value={stats.pendingAssignments}
-          icon={AlertCircle}
+          title="Créditos Completados"
+          value={dashboardData.estadisticas?.creditos_completados || 0}
+          icon={Target}
           color="bg-orange-500"
-          subtitle="Por entregar"
+          subtitle="Créditos"
         />
       </div>
 
@@ -244,10 +222,10 @@ const EstudianteDashboard = () => {
               </div>
             ))}
           </div>
-        ) : stats.enrolledCourses.length > 0 ? (
+        ) : dashboardData.cursos_actuales.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stats.enrolledCourses.map((enrollment) => (
-              <CourseCard key={enrollment.id} enrollment={enrollment} />
+            {dashboardData.cursos_actuales.map((course) => (
+              <CourseCard key={course.id} course={course} />
             ))}
           </div>
         ) : (
@@ -284,9 +262,9 @@ const EstudianteDashboard = () => {
               </div>
             ))}
           </div>
-        ) : stats.grades.length > 0 ? (
+        ) : dashboardData.notas_recientes.length > 0 ? (
           <div className="space-y-4">
-            {stats.grades.slice(0, 5).map((grade) => (
+            {dashboardData.notas_recientes.slice(0, 5).map((grade) => (
               <RecentGrade key={grade.id} grade={grade} />
             ))}
           </div>

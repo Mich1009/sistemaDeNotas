@@ -1,6 +1,29 @@
 import api from "../../../shared/utils/axiosInstance";
 
+// Servicios de autenticación y perfil
+export const profileService = {
+    getProfile: async () => {
+        const response = await api.get('/auth/me');
+        return response.data;
+    },
+
+    updateProfile: async (profileData) => {
+        const response = await api.put('/auth/me', profileData);
+        return response.data;
+    },
+
+    changePassword: async (passwordData) => {
+        const response = await api.post('/auth/change-password', passwordData);
+        return response.data;
+    },
+};
+
 export const academicService = {
+    getDashboard: async () => {
+        const response = await api.get('/student/dashboard');
+        return response.data;
+    },
+
     getCourses: async (params = {}) => {
         const response = await api.get('/student/courses', { params });
         return response.data;
@@ -45,31 +68,4 @@ export const gradesService = {
     },
 };
 
-// Servicios de tareas/asignaciones (para estudiante)
-export const assignmentService = {
-    getAssignments: async (params = {}) => {
-        const response = await api.get('/student/assignments', { params });
-        return response.data;
-    },
-
-    getAssignmentById: async (assignmentId) => {
-        const response = await api.get(`/student/assignments/${assignmentId}`);
-        return response.data;
-    },
-
-    submitAssignment: async (assignmentId, submissionData) => {
-        const response = await api.post(`/student/assignments/${assignmentId}/submit`, submissionData);
-        return response.data;
-    },
-
-    uploadAssignmentFile: async (assignmentId, file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        const response = await api.post(`/student/assignments/${assignmentId}/upload`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        return response.data;
-    },
-};
+// Servicios de tareas/asignaciones eliminados - los estudiantes solo tienen permisos de lectura

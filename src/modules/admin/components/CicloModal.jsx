@@ -62,8 +62,8 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
         // Validar nombre
         if (!formData.nombre.trim()) {
             newErrors.nombre = 'El nombre del ciclo es requerido';
-        } else if (formData.nombre.trim().length < 3) {
-            newErrors.nombre = 'El nombre debe tener al menos 3 caracteres';
+        } else if (formData.nombre.trim() === '') {
+            newErrors.nombre = '';
         } else if (formData.nombre.trim().length > 100) {
             newErrors.nombre = 'El nombre no puede exceder 100 caracteres';
         }
