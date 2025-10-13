@@ -6,7 +6,6 @@ export const useMatriculas = () => {
     const [matriculas, setMatriculas] = useState([]);
     const [estudiantes, setEstudiantes] = useState([]);
     const [ciclos, setCiclos] = useState([]);
-    const [cursosDisponibles, setCursosDisponibles] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -45,35 +44,17 @@ export const useMatriculas = () => {
         }
     };
 
-    // Cargar cursos disponibles para un ciclo
-    const fetchCursosDisponibles = async (cicloId) => {
+    // Cargar ciclos disponibles para un estudiante específico
+    const fetchCiclosDisponiblesParaEstudiante = async (estudianteId) => {
         try {
-            if (!cicloId) {
-                setCursosDisponibles([]);
-                return;
+            if (!estudianteId) {
+                return [];
             }
-            const data = await matriculasService.getCursosDisponibles(cicloId);
-            setCursosDisponibles(data || []);
+            const data = await matriculasService.getCiclosDisponiblesParaEstudiante(estudianteId);
+            return data.ciclos_disponibles || [];
         } catch (err) {
-            console.error('Error fetching cursos disponibles:', err);
-            setCursosDisponibles([]);
-        }
-    };
-
-    // Crear matrícula individual
-    const createMatricula = async (matriculaData) => {
-        try {
-            setLoading(true);
-            const newMatricula = await matriculasService.createMatricula(matriculaData);
-            setMatriculas(prev => [newMatricula, ...prev]);
-            toast.success('Matrícula creada exitosamente');
-            return newMatricula;
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || err.message || 'Error al crear matrícula';
-            toast.error(errorMessage);
-            throw err;
-        } finally {
-            setLoading(false);
+            console.error('Error fetching ciclos disponibles para estudiante:', err);
+            return [];
         }
     };
 
@@ -97,27 +78,6 @@ export const useMatriculas = () => {
         }
     };
 
-    // Actualizar matrícula
-    const updateMatricula = async (matriculaId, matriculaData) => {
-        try {
-            setLoading(true);
-            const updatedMatricula = await matriculasService.updateMatricula(matriculaId, matriculaData);
-            setMatriculas(prev => 
-                prev.map(matricula => 
-                    matricula.id === matriculaId ? updatedMatricula : matricula
-                )
-            );
-            toast.success('Matrícula actualizada exitosamente');
-            return updatedMatricula;
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || err.message || 'Error al actualizar matrícula';
-            toast.error(errorMessage);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Eliminar matrícula
     const deleteMatricula = async (matriculaId) => {
         try {
@@ -131,17 +91,6 @@ export const useMatriculas = () => {
             throw err;
         } finally {
             setLoading(false);
-        }
-    };
-
-    // Obtener matrículas de un estudiante específico
-    const getMatriculasEstudiante = async (estudianteId) => {
-        try {
-            const data = await matriculasService.getMatriculasEstudiante(estudianteId);
-            return data || [];
-        } catch (err) {
-            console.error('Error fetching matriculas estudiante:', err);
-            return [];
         }
     };
 
@@ -174,7 +123,6 @@ export const useMatriculas = () => {
         matriculas,
         estudiantes,
         ciclos,
-        cursosDisponibles,
         loading,
         error,
         
@@ -182,12 +130,9 @@ export const useMatriculas = () => {
         fetchMatriculas,
         fetchEstudiantes,
         fetchCiclos,
-        fetchCursosDisponibles,
-        createMatricula,
+        fetchCiclosDisponiblesParaEstudiante,
         matricularEstudianteCiclo,
-        updateMatricula,
         deleteMatricula,
-        getMatriculasEstudiante,
         searchEstudianteByDni
     };
 };

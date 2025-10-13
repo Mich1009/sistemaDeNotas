@@ -20,11 +20,6 @@ export const estudiantesService = {
         return response.data;
     },
 
-    getEstudiante: async (estudianteId) => {
-        const response = await api.get(`/admin/estudiantes/${estudianteId}`);
-        return response.data;
-    },
-
     createEstudiante: async (estudianteData) => {
         const response = await api.post('/admin/estudiantes', estudianteData);
         return response.data;
@@ -37,21 +32,6 @@ export const estudiantesService = {
 
     deleteEstudiante: async (estudianteId) => {
         const response = await api.delete(`/admin/estudiantes/${estudianteId}`);
-        return response.data;
-    },
-
-    activateEstudiante: async (estudianteId) => {
-        const response = await api.post(`/admin/estudiantes/${estudianteId}/activate`);
-        return response.data;
-    },
-
-    getEstudianteNotas: async (estudianteId) => {
-        const response = await api.get(`/admin/estudiantes/${estudianteId}/notas`);
-        return response.data;
-    },
-
-    getEstudianteMatriculas: async (estudianteId) => {
-        const response = await api.get(`/admin/estudiantes/${estudianteId}/matriculas`);
         return response.data;
     },
 
@@ -101,7 +81,7 @@ export const docentesService = {
 
 // Servicios de Cursos y Ciclos
 export const cursosService = {
-    // Ciclos (ya no hay carreras)
+    // Ciclos
     getCiclos: async () => {
         const response = await api.get('/admin/cursos-ciclos/ciclos');
         return response.data;
@@ -128,11 +108,6 @@ export const cursosService = {
         return response.data;
     },
 
-    getCurso: async (cursoId) => {
-        const response = await api.get(`/admin/cursos-ciclos/cursos/${cursoId}`);
-        return response.data;
-    },
-
     createCurso: async (cursoData) => {
         const response = await api.post('/admin/cursos-ciclos/cursos', cursoData);
         return response.data;
@@ -147,16 +122,6 @@ export const cursosService = {
         const response = await api.delete(`/admin/cursos-ciclos/cursos/${cursoId}`);
         return response.data;
     },
-
-    asignarDocenteCurso: async (cursoId, docenteId) => {
-        const response = await api.post(`/admin/cursos-ciclos/cursos/${cursoId}/docente/${docenteId}`);
-        return response.data;
-    },
-
-    desasignarDocenteCurso: async (cursoId) => {
-        const response = await api.delete(`/admin/cursos-ciclos/cursos/${cursoId}/docente`);
-        return response.data;
-    }
 };
 
 // Servicios de Notas
@@ -204,33 +169,14 @@ export const matriculasService = {
         return response.data;
     },
 
-    getMatricula: async (matriculaId) => {
-        const response = await api.get(`/admin/matriculas/${matriculaId}`);
-        return response.data;
-    },
-
-    createMatricula: async (matriculaData) => {
-        const response = await api.post('/admin/matriculas', matriculaData);
-        return response.data;
-    },
-
-    updateMatricula: async (matriculaId, matriculaData) => {
-        const response = await api.put(`/admin/matriculas/${matriculaId}`, matriculaData);
-        return response.data;
-    },
-
     deleteMatricula: async (matriculaId) => {
         const response = await api.delete(`/admin/matriculas/${matriculaId}`);
         return response.data;
     },
 
-    getMatriculasEstudiante: async (estudianteId) => {
-        const response = await api.get(`/admin/matriculas/estudiante/${estudianteId}`);
-        return response.data;
-    },
-
-    getCursosDisponibles: async (cicloId) => {
-        const response = await api.get(`/admin/matriculas/cursos-disponibles/${cicloId}`);
+    // Obtener ciclos disponibles para un estudiante específico
+    getCiclosDisponiblesParaEstudiante: async (estudianteId) => {
+        const response = await api.get(`/admin/matriculas/ciclos-disponibles/${estudianteId}`);
         return response.data;
     },
 

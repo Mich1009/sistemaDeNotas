@@ -215,7 +215,7 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
 
     return (
         <div style={{marginTop: 0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-light">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 py-3 border-b border-secondary-200">
                     <h2 className="text-xl font-semibold text-secondary-900">
@@ -250,8 +250,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="nombres"
                                         value={formData.nombres}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.nombres ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.nombres ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="Nombres del estudiante"
                                         disabled={isSubmitting}
@@ -274,8 +274,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="apellidos"
                                         value={formData.apellidos}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.apellidos ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.apellidos ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="Apellidos del estudiante"
                                         disabled={isSubmitting}
@@ -301,8 +301,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="dni"
                                         value={formData.dni}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.dni ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.dni ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="12345678"
                                         maxLength="8"
@@ -326,8 +326,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.email ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.email ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="estudiante@ejemplo.com"
                                         disabled={isSubmitting}
@@ -353,8 +353,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="telefono"
                                         value={formData.telefono}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.telefono ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.telefono ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="987654321"
                                         maxLength="9"
@@ -378,8 +378,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="fecha_nacimiento"
                                         value={formData.fecha_nacimiento}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.fecha_nacimiento ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.fecha_nacimiento ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         disabled={isSubmitting}
                                     />
@@ -408,8 +408,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                     value={formData.direccion}
                                     onChange={handleInputChange}
                                     rows="2"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 resize-none ${
-                                         errors.direccion ? 'border-red-500' : 'border-secondary-300'
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 resize-none ${
+                                         errors.direccion ? 'border-red-500' : 'border-gray-300'
                                      }`}
                                     placeholder="Dirección completa del estudiante"
                                     disabled={isSubmitting}
@@ -434,8 +434,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="nombre_apoderado"
                                         value={formData.nombre_apoderado}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.nombre_apoderado ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.nombre_apoderado ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="Nombre completo del apoderado"
                                         disabled={isSubmitting}
@@ -458,8 +458,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                         name="telefono_apoderado"
                                         value={formData.telefono_apoderado}
                                         onChange={handleInputChange}
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                             errors.telefono_apoderado ? 'border-red-500' : 'border-secondary-300'
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                             errors.telefono_apoderado ? 'border-red-500' : 'border-gray-300'
                                          }`}
                                         placeholder="987654321"
                                         maxLength="9"
@@ -489,8 +489,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                             name="password"
                                             value={formData.password}
                                             onChange={handleInputChange}
-                                            className={`w-full pl-4 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                                 errors.password ? 'border-red-500' : 'border-secondary-300'
+                                            className={`w-full pl-4 pr-10 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                                 errors.password ? 'border-red-500' : 'border-gray-300'
                                              }`}
                                             placeholder="Mínimo 6 caracteres"
                                             disabled={isSubmitting}
@@ -520,8 +520,8 @@ const EstudianteModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialDa
                                             name="confirmPassword"
                                             value={formData.confirmPassword}
                                             onChange={handleInputChange}
-                                            className={`w-full pl-4 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                                 errors.confirmPassword ? 'border-red-500' : 'border-secondary-300'
+                                            className={`w-full pl-4 pr-10 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                                                 errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                                              }`}
                                             placeholder="Repite la contraseña"
                                             disabled={isSubmitting}
