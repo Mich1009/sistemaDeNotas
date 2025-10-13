@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-    BookOpen, 
-    Plus, 
-    Search, 
-    Edit, 
-    Trash2, 
+import {
+    BookOpen,
+    Plus,
+    Search,
+    Edit,
+    Trash2,
     Users,
     UserPlus,
     UserMinus,
@@ -17,11 +17,11 @@ import { useCursos } from '../hooks';
 import CursoModal from './CursoModal';
 
 const CursosManager = () => {
-    const { 
+    const {
         cursos,
         ciclos,
-        loading, 
-        error, 
+        loading,
+        error,
         createCurso,
         updateCurso,
         deleteCurso,
@@ -35,14 +35,23 @@ const CursosManager = () => {
     const [selectedCurso, setSelectedCurso] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedCiclo, setSelectedCiclo] = useState('');
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
-    // Filter cursos based on search term and selected ciclo
+    // Filter cursos based on search term, selected ciclo, and year
     const getFilteredCursos = () => {
         let filteredCursos = cursos;
 
+        // Filter by year first (based on ciclo's año)
+        if (selectedYear) {
+            filteredCursos = filteredCursos.filter(curso => {
+                const ciclo = ciclos.find(c => c.id === curso.ciclo_id);
+                return ciclo && ciclo.año && ciclo.año.toString() === selectedYear;
+            });
+        }
+
         // Filter by ciclo if selected
         if (selectedCiclo) {
-            filteredCursos = filteredCursos.filter(curso => 
+            filteredCursos = filteredCursos.filter(curso =>
                 curso.ciclo_id === parseInt(selectedCiclo)
             );
         }
@@ -55,8 +64,8 @@ const CursosManager = () => {
                 curso.descripcion,
                 curso.docente_nombre
             ].filter(Boolean);
-            
-            return searchFields.some(field => 
+
+            return searchFields.some(field =>
                 field.toLowerCase().includes(searchTerm.toLowerCase())
             );
         });
@@ -94,90 +103,66 @@ const CursosManager = () => {
         }
     };
 
-    const CursoCard = ({ curso }) => (
-        <div className="card p-4">
-            <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-secondary-900">{curso.nombre}</h3>
-                        <p className="text-sm text-secondary-600">Código: {curso.codigo}</p>
-                        {curso.descripcion && (
-                            <p className="text-sm text-secondary-600 mt-1">{curso.descripcion}</p>
-                        )}
-                        
-                        {/* Información adicional */}
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                            {curso.creditos && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center">
-                                    <Award className="w-3 h-3 mr-1" />
-                                    {curso.creditos} créditos
-                                </span>
-                            )}
-                            {curso.horas_semanales && (
-                                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded flex items-center">
-                                    <Clock className="w-3 h-3 mr-1" />
-                                    {curso.horas_semanales}h/sem
-                                </span>
-                            )}
-                            {curso.aula && (
-                                <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded flex items-center">
-                                    <MapPin className="w-3 h-3 mr-1" />
-                                    {curso.aula}
-                                </span>
-                            )}
-                            {curso.max_estudiantes && (
-                                <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded flex items-center">
-                                    <Users className="w-3 h-3 mr-1" />
-                                    Max: {curso.max_estudiantes}
-                                </span>
-                            )}
-                        </div>
+    const CursoCard = ({ curso }) => {
+        // Obtener el año del ciclo al que pertenece el curso
+        const ciclo = ciclos.find(c => c.id === curso.ciclo_id);
+        const añoCurso = ciclo ? ciclo.año : null;
 
-                        {/* Información del docente y ciclo */}
-                        <div className="mt-2 space-y-1">
-                            {curso.docente_nombre && (
-                                <p className="text-xs text-secondary-500">
-                                    Docente: {curso.docente_nombre}
-                                </p>
+        return (
+            <div className="card p-4">
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <BookOpen className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-secondary-900">{curso.nombre}</h3>
+                            </div>
+                            {curso.descripcion && (
+                                <p className="text-sm text-secondary-600 mt-1">{curso.descripcion}</p>
                             )}
-                            {curso.ciclo_nombre && (
-                                <p className="text-xs text-secondary-500">
-                                    Ciclo: {curso.ciclo_nombre}
-                                </p>
-                            )}
-                            {curso.horario && (
-                                <p className="text-xs text-secondary-500">
-                                    Horario: {curso.horario}
-                                </p>
-                            )}
+                            {/* Información del docente y ciclo */}
+                            <div className="mt-2 space-y-1">
+                                {curso.docente_nombre && (
+                                    <p className="text-xs text-secondary-500">
+                                        Docente: {curso.docente_nombre}
+                                    </p>
+                                )}
+                                <div className='flex items-center gap-3'>
+                                    <p className="text-xs text-secondary-500">
+                                        Ciclo: {curso.ciclo_nombre}
+                                    </p>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-medium">
+                                        {añoCurso}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => {
-                            setSelectedCurso(curso);
-                            setShowEditModal(true);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Editar"
-                    >
-                        <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => handleDeleteCurso(curso.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => {
+                                setSelectedCurso(curso);
+                                setShowEditModal(true);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Editar"
+                        >
+                            <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => handleDeleteCurso(curso.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const filteredCursos = getFilteredCursos();
 
@@ -224,17 +209,32 @@ const CursosManager = () => {
                             />
                         </div>
                         <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="px-4 py-3 border border-secondary-300 bg-white text-gray-900 rounded-lg 
+                                       focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        >
+                            <option value="">Todos los años</option>
+                            {[...new Set(ciclos.map(ciclo => ciclo.año))].sort((a, b) => b - a).map(año => (
+                                <option key={año} value={año}>
+                                    {año}
+                                </option>
+                            ))}
+                        </select>
+                        <select
                             value={selectedCiclo}
                             onChange={(e) => setSelectedCiclo(e.target.value)}
-                            className="px-4 py-2 border border-secondary-300 bg-white text-gray-900 rounded-lg 
+                            className="px-4 py-3 border border-secondary-300 bg-white text-gray-900 rounded-lg 
                                        focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                         >
                             <option value="">Todos los ciclos</option>
-                            {ciclos.map(ciclo => (
-                                <option key={ciclo.id} value={ciclo.id}>
-                                    {ciclo.nombre}
-                                </option>
-                            ))}
+                            {ciclos
+                                .filter(ciclo => !selectedYear || ciclo.año.toString() === selectedYear)
+                                .map(ciclo => (
+                                    <option key={ciclo.id} value={ciclo.id}>
+                                        {ciclo.nombre}
+                                    </option>
+                                ))}
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -281,7 +281,7 @@ const CursosManager = () => {
                 mode="create"
                 ciclos={ciclos}
             />
-            
+
             <CursoModal
                 isOpen={showEditModal}
                 onClose={() => {

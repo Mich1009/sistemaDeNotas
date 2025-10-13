@@ -23,19 +23,21 @@ const Matriculas = () => {
         fetchMatriculas,
         matricularEstudianteCiclo,
         deleteMatricula,
-        searchEstudianteByDni
+        searchEstudianteByDni,
+        fetchCiclosDisponiblesParaEstudiante
     } = useMatriculas();
 
     // Estados locales
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCiclo, setFilterCiclo] = useState('');
-    const [filterEstado, setFilterEstado] = useState('activo');
+    const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
     const [showMatriculaModal, setShowMatriculaModal] = useState(false);
     const [selectedEstudiante, setSelectedEstudiante] = useState(null);
     const [selectedCiclo, setSelectedCiclo] = useState('');
     const [codigoMatricula, setCodigoMatricula] = useState('');
     const [dniSearch, setDniSearch] = useState('');
     const [searchingStudent, setSearchingStudent] = useState(false);
+    const [ciclosDisponibles, setCiclosDisponibles] = useState([]);
 
     // Filtrar matrículas
     const filteredMatriculas = matriculas.filter(matricula => {
@@ -46,11 +48,10 @@ const Matriculas = () => {
             matricula.codigo_matricula?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesCiclo = !filterCiclo || matricula.ciclo_id?.toString() === filterCiclo;
-        const matchesEstado = !filterEstado ||
-            (filterEstado === 'activo' && matricula.is_active) ||
-            (filterEstado === 'inactivo' && !matricula.is_active);
+        
+        const matchesYear = !filterYear || matricula.ciclo?.año?.toString() === filterYear;
 
-        return matchesSearch && matchesCiclo && matchesEstado;
+        return matchesSearch && matchesCiclo && matchesYear;
     });
 
     // Buscar estudiante por DNI
@@ -63,18 +64,23 @@ const Matriculas = () => {
         try {
             setSearchingStudent(true);
             const estudiante = await searchEstudianteByDni(dniSearch);
-            
+
             if (estudiante) {
                 setSelectedEstudiante(estudiante);
+                // Cargar ciclos disponibles para este estudiante
+                const ciclosDisp = await fetchCiclosDisponiblesParaEstudiante(estudiante.id);
+                setCiclosDisponibles(ciclosDisp);
                 toast.success('Estudiante encontrado');
             } else {
                 setSelectedEstudiante(null);
+                setCiclosDisponibles([]);
                 toast.error('No se encontró ningún estudiante con ese DNI');
             }
         } catch (error) {
             console.error('Error al buscar estudiante:', error);
             toast.error('Error al buscar el estudiante');
             setSelectedEstudiante(null);
+            setCiclosDisponibles([]);
         } finally {
             setSearchingStudent(false);
         }
@@ -84,6 +90,7 @@ const Matriculas = () => {
     const clearStudentSearch = () => {
         setDniSearch('');
         setSelectedEstudiante(null);
+        setCiclosDisponibles([]);
     };
 
     // Matricular estudiante
@@ -108,6 +115,7 @@ const Matriculas = () => {
         setSelectedEstudiante(null);
         setSelectedCiclo('');
         setCodigoMatricula('');
+        setCiclosDisponibles([]);
     };
 
     // Manejar eliminación de matrícula
@@ -121,28 +129,13 @@ const Matriculas = () => {
         }
     };
 
-    // Obtener el nombre del estado
-    const getEstadoLabel = (estado) => {
-        const estados = {
-            'activa': 'Activa',
-            'inactiva': 'Inactiva',
-            'retirada': 'Retirada'
-        };
-        return estados[estado] || estado;
-    };
-
     // Obtener el color del estado
-    const getEstadoColor = (estado) => {
-        const colores = {
-            'activa': 'bg-green-100 text-green-800',
-            'inactiva': 'bg-gray-100 text-gray-800',
-            'retirada': 'bg-red-100 text-red-800'
-        };
-        return colores[estado] || 'bg-gray-100 text-gray-800';
+    const getEstadoColor = (isActive) => {
+        return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
     };
 
     return (
-        <div className="p-6">
+        <div className="p-3">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
@@ -165,52 +158,67 @@ const Matriculas = () => {
 
             {/* Filtros */}
             <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Búsqueda */}
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <input
-                            type="text"
-                            placeholder="Buscar estudiante o código..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
+                <div className="flex justify-between items-center">
+                    <div className="flex gap-4">
+                        {/* Búsqueda */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <input
+                                type="text"
+                                placeholder="Buscar estudiante o código..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                            />
+                        </div>
+
+                        {/* Filtro por Año */}
+                        <select
+                            value={filterYear}
+                            onChange={(e) => {
+                                setFilterYear(e.target.value);
+                                setFilterCiclo(''); // Reset ciclo filter when year changes
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                        >
+                            <option value="">Todos los años</option>
+                            {[...new Set(ciclos.map(ciclo => ciclo.año).filter(Boolean))].sort((a, b) => b - a).map(year => (
+                                <option key={year} value={year}>
+                                    {year}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Filtro por Ciclo */}
+                        <select
+                            value={filterCiclo}
+                            onChange={(e) => setFilterCiclo(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                        >
+                            <option value="">Todos los ciclos</option>
+                            {ciclos
+                                .filter(ciclo => !filterYear || ciclo.año?.toString() === filterYear)
+                                .map(ciclo => (
+                                    <option key={ciclo.id} value={ciclo.id}>
+                                        {ciclo.nombre} {ciclo.año && `(${ciclo.año})`}
+                                    </option>
+                                ))}
+                        </select>
                     </div>
 
-                    {/* Filtro por Ciclo */}
-                    <select
-                        value={filterCiclo}
-                        onChange={(e) => setFilterCiclo(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                        <option value="">Todos los ciclos</option>
-                        {ciclos.map(ciclo => (
-                            <option key={ciclo.id} value={ciclo.id}>
-                                {ciclo.nombre}
-                            </option>
-                        ))}
-                    </select>
-
-                    {/* Filtro por Estado */}
-                    <select
-                        value={filterEstado}
-                        onChange={(e) => setFilterEstado(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                        <option value="">Todos los estados</option>
-                        <option value="activo">Activos</option>
-                        <option value="inactivo">Inactivos</option>
-                    </select>
-
-                    {/* Botón de actualizar */}
-                    <button
-                        onClick={() => fetchMatriculas()}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                    >
-                        <Filter className="h-4 w-4" />
-                        Actualizar
-                    </button>
+                    {/* Contador total y botón de actualizar */}
+                    <div className="flex items-center gap-4">
+                        <div className="text-sm text-gray-600">
+                            Total: <span className="font-semibold text-gray-900">{filteredMatriculas.length}</span> matrículas
+                        </div>
+                        <button
+                            onClick={() => fetchMatriculas()}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                            <Filter className="h-4 w-4" />
+                            Actualizar
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -220,6 +228,9 @@ const Matriculas = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                    N°
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Estudiante
                                 </th>
@@ -228,6 +239,9 @@ const Matriculas = () => {
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Ciclo
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Año
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Carrera
@@ -249,7 +263,7 @@ const Matriculas = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center">
+                                    <td colSpan="9" className="px-6 py-4 text-center">
                                         <div className="flex items-center justify-center">
                                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                                             <span className="ml-2">Cargando matrículas...</span>
@@ -258,72 +272,68 @@ const Matriculas = () => {
                                 </tr>
                             ) : filteredMatriculas.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
                                         No se encontraron matrículas
                                     </td>
                                 </tr>
                             ) : (
-                                filteredMatriculas.map((matricula) => (
+                                filteredMatriculas.map((matricula, index) => (
                                     <tr key={matricula.id} className="hover:bg-gray-50">
+                                        <td style={{fontSize: 14}} className="text-center size-1">
+                                            {index + 1}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                                        <Users className="h-5 w-5 text-blue-600" />
-                                                    </div>
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                    <Users className="h-5 w-5 text-blue-600" />
                                                 </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {matricula.estudiante?.nombres} {matricula.estudiante?.apellidos}
-                                                    </div>
-                                                </div>
+                                                <span className="ml-4 text-sm font-medium text-gray-900">
+                                                    {matricula.estudiante?.apellidos} {matricula.estudiante?.nombres}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {matricula.estudiante?.dni}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                                                <span className="text-sm text-gray-900">
-                                                    {matricula.ciclo?.nombre}
-                                                </span>
-                                            </div>
+                                            <Calendar className="h-4 w-4 text-gray-400 mr-2 inline" />
+                                            <span className="text-sm text-gray-900">
+                                                {matricula.ciclo?.nombre}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {matricula.ciclo?.año}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {matricula.estudiante?.carrera?.nombre || 'Sin asignar'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <Hash className="h-4 w-4 text-gray-400 mr-2" />
-                                                <span className="text-sm font-mono text-gray-900">
-                                                    {matricula.codigo_matricula}
-                                                </span>
-                                            </div>
+                                            <Hash className="h-4 w-4 text-gray-400 mr-2 inline" />
+                                            <span className="text-sm font-mono text-gray-900">
+                                                {matricula.codigo_matricula}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {new Date(matricula.fecha_matricula).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(matricula.estado)}`}>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(matricula.is_active)}`}>
                                                 {matricula.is_active ? (
                                                     <CheckCircle className="h-3 w-3 mr-1" />
                                                 ) : (
                                                     <XCircle className="h-3 w-3 mr-1" />
                                                 )}
-                                                {getEstadoLabel(matricula.estado)}
+                                                {matricula.is_active ? 'Activa' : 'Inactiva'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleDeleteMatricula(matricula.id)}
-                                                    className="text-red-600 hover:text-red-900 p-1 rounded"
-                                                    title="Eliminar matrícula"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteMatricula(matricula.id)}
+                                                className="text-red-600 hover:text-red-900 p-1 rounded"
+                                                title="Eliminar matrícula"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -362,7 +372,7 @@ const Matriculas = () => {
                                         placeholder="Ingrese el DNI del estudiante"
                                         value={dniSearch}
                                         onChange={(e) => setDniSearch(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                                         maxLength="8"
                                     />
                                     <button
@@ -424,15 +434,25 @@ const Matriculas = () => {
                                 <select
                                     value={selectedCiclo}
                                     onChange={(e) => setSelectedCiclo(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                                 >
                                     <option value="">Seleccionar ciclo</option>
-                                    {ciclos.map(ciclo => (
-                                        <option key={ciclo.id} value={ciclo.id}>
-                                            {ciclo.nombre}
+                                    {ciclosDisponibles.map(ciclo => (
+                                        <option
+                                            key={ciclo.id}
+                                            value={ciclo.id}
+                                            disabled={!ciclo.puede_matricularse}
+                                            title={ciclo.razon}
+                                        >
+                                            {ciclo.nombre} {!ciclo.puede_matricularse ? `(${ciclo.razon})` : ''}
                                         </option>
                                     ))}
                                 </select>
+                                {selectedEstudiante && ciclosDisponibles.length === 0 && (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        No hay ciclos disponibles para este estudiante
+                                    </p>
+                                )}
                             </div>
 
                             {/* Código de Matrícula */}
@@ -447,7 +467,7 @@ const Matriculas = () => {
                                         placeholder="Ingrese el código de matrícula"
                                         value={codigoMatricula}
                                         onChange={(e) => setCodigoMatricula(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                                         maxLength="20"
                                     />
                                 </div>

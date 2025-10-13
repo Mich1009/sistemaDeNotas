@@ -75,16 +75,6 @@ export const useCursos = () => {
         }
     };
 
-    const getCursoById = async (id) => {
-        try {
-            setError(null);
-            return await cursosService.getCurso(id);
-        } catch (err) {
-            setError(err.message || 'Error al obtener curso');
-            throw err;
-        }
-    };
-
     const createCurso = async (cursoData) => {
         try {
             setError(null);
@@ -182,7 +172,6 @@ export const useCursos = () => {
 
         // Cursos
         fetchCursos,
-        getCursoById,
         createCurso,
         updateCurso,
         deleteCurso,

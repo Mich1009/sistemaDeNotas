@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    GraduationCap, 
-    Plus, 
-    Search, 
-    Edit, 
-    UserX, 
-    UserCheck,
-    Filter,
-    Users
+import {
+    GraduationCap,
+    Plus,
+    Search,
+    Edit,
+    Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEstudiantes } from '../hooks';
@@ -15,67 +12,82 @@ import { useCiclos } from '../hooks/useCiclos';
 import EstudianteModal from './EstudianteModal';
 
 const Students = () => {
-    const { 
-        estudiantes, 
-        loading, 
-        error, 
-        createEstudiante, 
-        updateEstudiante, 
+    const {
+        estudiantes,
+        loading,
+        error,
+        createEstudiante,
+        updateEstudiante,
         deleteEstudiante,
-        activateEstudiante,
-        searchEstudianteByDni,
-        refreshEstudiantes,
-        fetchEstudiantes
+        fetchEstudiantes,
+        debouncedFetchEstudiantes,
+        pagination
     } = useEstudiantes();
 
-    const { 
-        ciclos, 
-        loading: ciclosLoading, 
-        getUltimoCiclo, 
-        getCiclosActivos 
+    const {
+        ciclos,
+        loading: ciclosLoading,
+        getCiclosActivos
     } = useCiclos();
 
-    // Obtener ciclos activos como valor, no como función
+    // Obtener ciclos activos
     const ciclosActivos = getCiclosActivos;
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCiclo, setSelectedCiclo] = useState(null);
-    const [filterMatricula, setFilterMatricula] = useState('all');
+    const [selectedCiclo, setSelectedCiclo] = useState(''); // Cambiar a string vacío para "Todos los ciclos"
+    const [enrollmentStatus, setEnrollmentStatus] = useState('matriculados'); // 'matriculados', 'sin_matricular', 'todos'
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedEstudiante, setSelectedEstudiante] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [page, setPage] = useState(1);
+    const perPage = 20;
 
-    // Establecer el último ciclo como filtro por defecto
-    useEffect(() => {
-        if (ciclos.length > 0 && !selectedCiclo) {
-            const ultimoCiclo = getUltimoCiclo;
-            if (ultimoCiclo) {
-                setSelectedCiclo(ultimoCiclo.id);
+    // Determinar si se debe usar paginación (solo cuando no hay filtro de ciclo específico)
+    const shouldUsePagination = !selectedCiclo;
+
+    // Manejo de búsqueda con debounce
+    const onSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        setPage(1);
+        
+        const cicloNombre = selectedCiclo || null;
+        const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
+        
+        // Siempre usar debounce para búsquedas, excepto cuando se limpia el campo
+        if (value.trim() === '') {
+            // Si el campo está vacío, cargar inmediatamente sin debounce
+            if (shouldUsePagination) {
+                fetchEstudiantes(cicloNombre, estadoMatricula, 1, perPage, '');
+            } else {
+                fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, '');
+            }
+        } else {
+            // Para cualquier búsqueda con contenido, usar debounce
+            if (shouldUsePagination) {
+                debouncedFetchEstudiantes(cicloNombre, estadoMatricula, 1, perPage, value);
+            } else {
+                debouncedFetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, value);
             }
         }
-    }, [ciclos, selectedCiclo]);
+    };
 
-    // Cargar estudiantes cuando cambie el ciclo seleccionado
-    useEffect(() => {
-        if (selectedCiclo) {
-            fetchEstudiantes(selectedCiclo);
+    // Paginación: anterior/siguiente (solo cuando se usa paginación)
+    const goPrevPage = () => {
+        if (shouldUsePagination && pagination.page > 1) {
+            const newPage = pagination.page - 1;
+            setPage(newPage);
+            // No llamar fetchEstudiantes aquí, se maneja en useEffect
         }
-    }, [selectedCiclo]);
+    };
 
-    // Filter estudiantes based on search term and matricula status
-    const filteredEstudiantes = estudiantes.filter(estudiante => {
-        const matchesSearch = 
-            estudiante.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            estudiante.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            estudiante.dni?.includes(searchTerm) ||
-            estudiante.email?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesMatricula = filterMatricula === 'all' || 
-            (filterMatricula === 'matriculado' && estudiante.matriculado) ||
-            (filterMatricula === 'no_matriculado' && !estudiante.matriculado);
-        
-        return matchesSearch && matchesMatricula;
-    });
+    const goNextPage = () => {
+        if (shouldUsePagination && pagination.page < pagination.totalPages) {
+            const newPage = pagination.page + 1;
+            setPage(newPage);
+            // No llamar fetchEstudiantes aquí, se maneja en useEffect
+        }
+    };
 
     const handleCreateEstudiante = async (estudianteData) => {
         try {
@@ -109,14 +121,39 @@ const Students = () => {
         }
     };
 
-    const handleActivateEstudiante = async (id) => {
-        try {
-            await activateEstudiante(id, selectedCiclo);
-            toast.success('Estudiante activado exitosamente');
-        } catch (error) {
-            toast.error('Error al activar estudiante');
+    // Establecer el primer ciclo como filtro por defecto
+    useEffect(() => {
+        // Inicialmente no seleccionar ningún ciclo para mostrar todos los estudiantes
+        // El usuario puede filtrar manualmente por ciclo específico
+    }, [ciclos]);
+
+    // Cargar estudiantes cuando cambien ciclo/página (sin incluir searchTerm para evitar llamadas inmediatas)
+    useEffect(() => {
+        // Solo cargar automáticamente cuando cambie el ciclo o la página
+        // La búsqueda se maneja por separado con debounce en onSearchChange
+        const cicloNombre = selectedCiclo || null;
+        const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
+        
+        if (shouldUsePagination) {
+            fetchEstudiantes(cicloNombre, estadoMatricula, page, perPage, searchTerm);
+        } else {
+            fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, searchTerm);
         }
-    };
+    }, [selectedCiclo, page, shouldUsePagination, enrollmentStatus]);
+
+
+
+    // Cargar estudiantes inicialmente
+    useEffect(() => {
+        const cicloNombre = selectedCiclo || null;
+        const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
+        
+        if (shouldUsePagination) {
+            fetchEstudiantes(cicloNombre, estadoMatricula, page, perPage, searchTerm);
+        } else {
+            fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, searchTerm);
+        }
+    }, []);
 
     if (loading) {
         return (
@@ -127,7 +164,7 @@ const Students = () => {
     }
 
     return (
-        <div className="space-y-4 p-3">
+        <div className="space-y-4 p-3 mb-20">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -155,39 +192,54 @@ const Students = () => {
                                 type="text"
                                 placeholder="Buscar estudiantes..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 pr-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                onChange={onSearchChange}
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
                             />
                         </div>
+                        <div className="relative">
+                            <select
+                                value={selectedCiclo}
+                                onChange={(e) => {
+                                    setSelectedCiclo(e.target.value);
+                                    setPage(1);
+                                }}
+                                className="pl-3 pr-8 py-2 border border-secondary-300 bg-white text-gray-900 rounded-lg 
+                                            focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="">Todos los ciclos</option>
+                                <option value="I">Ciclo I</option>
+                                <option value="II">Ciclo II</option>
+                                <option value="III">Ciclo III</option>
+                                <option value="IV">Ciclo IV</option>
+                                <option value="V">Ciclo V</option>
+                                <option value="VI">Ciclo VI</option>
+                            </select>
+                        </div>
                         <select
-                            value={selectedCiclo || ''}
-                            onChange={(e) => setSelectedCiclo(e.target.value)}
-                            className="px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            disabled={ciclosLoading}
+                            value={enrollmentStatus}
+                            onChange={(e) => { setEnrollmentStatus(e.target.value); setPage(1); }}
+                            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
                         >
-                            <option value="">Seleccionar Ciclo</option>
-                            {ciclosActivos.map(ciclo => (
-                                <option key={ciclo.id} value={ciclo.id}>
-                                    {ciclo.nombre}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={filterMatricula}
-                            onChange={(e) => setFilterMatricula(e.target.value)}
-                            className="px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        >
-                            <option value="all">Todos</option>
-                            <option value="matriculado">Matriculados</option>
-                            <option value="no_matriculado">No Matriculados</option>
+                            <option value="matriculados">Matriculados</option>
+                            <option value="sin_matricular">Sin Matricular</option>
+                            <option value="todos">Todos</option>
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <span className="text-sm text-secondary-600">
-                            {filteredEstudiantes.length} estudiante(s) encontrado(s)
+                            Total: {pagination.total} estudiantes
                         </span>
                         <button
-                            onClick={() => refreshEstudiantes(selectedCiclo)}
+                            onClick={() => {
+                                const cicloNombre = selectedCiclo || null;
+                                const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
+                                
+                                if (shouldUsePagination) {
+                                    fetchEstudiantes(cicloNombre, estadoMatricula, page, perPage, searchTerm);
+                                } else {
+                                    fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, searchTerm);
+                                }
+                            }}
                             className="btn-secondary"
                         >
                             Actualizar
@@ -197,14 +249,14 @@ const Students = () => {
             </div>
 
             {/* Students Table */}
-            {filteredEstudiantes.length === 0 ? (
+            {estudiantes.length === 0 ? (
                 <div className="card p-8 text-center">
                     <GraduationCap className="w-16 h-16 text-secondary-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-secondary-900 mb-2">
                         No se encontraron estudiantes
                     </h3>
                     <p className="text-secondary-600">
-                        {searchTerm || filterMatricula !== 'all' 
+                        {searchTerm
                             ? 'Intenta ajustar los filtros de búsqueda'
                             : 'Comienza agregando tu primer estudiante'
                         }
@@ -217,6 +269,9 @@ const Students = () => {
                             <thead className="bg-secondary-50">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                        N°
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                                         Estudiante
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
@@ -226,13 +281,13 @@ const Students = () => {
                                         Email
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                        Teléfono
+                                        F Nacimiento
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                                         Carrera
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                        Estado Matrícula
+                                        Ciclo Actual
                                     </th>
                                     <th className="px-4 py-3 text-right text-xs font-medium text-secondary-500 uppercase tracking-wider">
                                         Acciones
@@ -240,8 +295,14 @@ const Students = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-secondary-200">
-                                {filteredEstudiantes.map((estudiante) => (
+                                {estudiantes.map((estudiante, index) => (
                                     <tr key={estudiante.id} className="hover:bg-secondary-50">
+                                        <td className='text-center size-1'>
+                                            {shouldUsePagination 
+                                                ? ((pagination.page - 1) * perPage) + index + 1
+                                                : index + 1
+                                            }
+                                        </td>
                                         <td className="px-3 py-2 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -249,13 +310,11 @@ const Students = () => {
                                                 </div>
                                                 <div className='ml-4'>
                                                     <div className="text-sm font-medium text-secondary-900">
-                                                        {estudiante.first_name} {estudiante.last_name}
+                                                        {estudiante.last_name} {estudiante.first_name}
                                                     </div>
-                                                    {estudiante.direccion && (
-                                                        <div className="text-sm text-secondary-400">
-                                                            {estudiante.direccion}
-                                                        </div>
-                                                    )}
+                                                    <div className="text-sm text-secondary-400">
+                                                        {estudiante.phone || '-'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -266,19 +325,23 @@ const Students = () => {
                                             {estudiante.email}
                                         </td>
                                         <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
-                                            {estudiante.phone || '-'}
+                                            {estudiante.fecha_nacimiento
+                                                ? new Date(estudiante.fecha_nacimiento).toLocaleDateString('es-ES')
+                                                : '-'}
                                         </td>
                                         <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
                                             {estudiante.carrera?.nombre || 'Sin asignar'}
                                         </td>
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                estudiante.matriculado 
-                                                    ? 'bg-green-100 text-green-800' 
-                                                    : 'bg-red-100 text-red-800'
-                                            }`}>
-                                                {estudiante.matriculado ? 'Matriculado' : 'No Matriculado'}
-                                            </span>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-secondary-900">
+                                            {estudiante.ciclo_actual && estudiante.ciclo_actual !== 'Sin Matricular' ? (
+                                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                    {estudiante.ciclo_actual}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                                    Sin Matricular
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end space-x-2">
@@ -292,21 +355,12 @@ const Students = () => {
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                {!estudiante.is_active && (
-                                                    <button
-                                                        onClick={() => handleActivateEstudiante(estudiante.id)}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Activar"
-                                                    >
-                                                        <UserCheck className="w-4 h-4" />
-                                                    </button>
-                                                )}
                                                 <button
                                                     onClick={() => handleDeleteEstudiante(estudiante.id)}
                                                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Inactivar"
+                                                    title="Eliminar"
                                                 >
-                                                    <UserX className="w-4 h-4" />
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -315,6 +369,30 @@ const Students = () => {
                             </tbody>
                         </table>
                     </div>
+                    {/* Paginación - Solo mostrar cuando se usa paginación */}
+                    {shouldUsePagination && (
+                        <div className="flex items-center justify-between p-4 border-t bg-secondary-50">
+                            <div className="text-sm text-secondary-700">
+                                Página {pagination.page} de {pagination.totalPages} • Total: {pagination.total}
+                            </div>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={goPrevPage}
+                                    disabled={pagination.page <= 1}
+                                    className="px-4 py-2 border rounded disabled:opacity-50 text-secondary-700 bg-secondary-100"
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    onClick={goNextPage}
+                                    disabled={pagination.page >= pagination.totalPages}
+                                    className="px-4 py-2 border rounded disabled:opacity-50 text-secondary-700 bg-secondary-100"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -325,7 +403,7 @@ const Students = () => {
                 onSubmit={handleCreateEstudiante}
                 mode="create"
             />
-            
+
             {/* EstudianteModal para editar */}
             <EstudianteModal
                 isOpen={showEditModal}

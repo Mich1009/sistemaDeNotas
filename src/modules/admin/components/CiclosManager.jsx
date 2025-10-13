@@ -26,11 +26,13 @@ const CiclosManager = () => {
     } = useCursos();
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedYear, setSelectedYear] = useState('2025');
+    const [selectedStatus, setSelectedStatus] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedCiclo, setSelectedCiclo] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
 
-    // Filter ciclos based on search term
+    // Filter ciclos based on search term, year, and status
     const getFilteredCiclos = () => {
         return ciclos.filter(ciclo => {
             const searchFields = [
@@ -38,9 +40,30 @@ const CiclosManager = () => {
                 ciclo.descripcion
             ].filter(Boolean);
 
-            return searchFields.some(field =>
+            const matchesSearch = searchFields.some(field =>
                 field.toLowerCase().includes(searchTerm.toLowerCase())
             );
+
+            const matchesYear = selectedYear === '' || 
+                (ciclo.año && ciclo.año.toString() === selectedYear);
+
+            // Determine status for filtering
+            const fechaInicio = new Date(ciclo.fecha_inicio);
+            const fechaFin = new Date(ciclo.fecha_fin);
+            const now = new Date();
+
+            let cicloStatus;
+            if (now < fechaInicio) {
+                cicloStatus = 'Próximo';
+            } else if (now >= fechaInicio && now <= fechaFin) {
+                cicloStatus = 'Activo';
+            } else {
+                cicloStatus = 'Finalizado';
+            }
+
+            const matchesStatus = selectedStatus === '' || cicloStatus === selectedStatus;
+
+            return matchesSearch && matchesYear && matchesStatus;
         });
     };
 
@@ -90,25 +113,23 @@ const CiclosManager = () => {
 
     const CicloCard = ({ ciclo }) => {
         const cursosCount = getCursosCountForCiclo(ciclo.id);
-        const fechaInicio = ciclo.fecha_inicio ? new Date(ciclo.fecha_inicio) : null;
-        const fechaFin = ciclo.fecha_fin ? new Date(ciclo.fecha_fin) : null;
+        const fechaInicio = new Date(ciclo.fecha_inicio);
+        const fechaFin = new Date(ciclo.fecha_fin);
         const now = new Date();
 
         // Determinar el estado del ciclo
-        let estado = 'Programado';
-        let estadoColor = 'bg-gray-100 text-gray-800';
+        let estado;
+        let estadoColor;
 
-        if (fechaInicio && fechaFin) {
-            if (now < fechaInicio) {
-                estado = 'Próximo';
-                estadoColor = 'bg-blue-100 text-blue-800';
-            } else if (now >= fechaInicio && now <= fechaFin) {
-                estado = 'Activo';
-                estadoColor = 'bg-green-100 text-green-800';
-            } else {
-                estado = 'Finalizado';
-                estadoColor = 'bg-red-100 text-red-800';
-            }
+        if (now < fechaInicio) {
+            estado = 'Próximo';
+            estadoColor = 'bg-blue-100 text-blue-800';
+        } else if (now >= fechaInicio && now <= fechaFin) {
+            estado = 'Activo';
+            estadoColor = 'bg-green-100 text-green-800';
+        } else {
+            estado = 'Finalizado';
+            estadoColor = 'bg-red-100 text-red-800';
         }
 
         return (
@@ -120,10 +141,15 @@ const CiclosManager = () => {
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
-                                <h3 className="font-semibold text-secondary-900">{ciclo.nombre}</h3>
+                                <h3 className="font-semibold text-secondary-900">{ciclo.nombre} - {ciclo.numero}</h3>
                                 <span className={`text-xs px-2 py-1 rounded ${estadoColor}`}>
                                     {estado}
                                 </span>
+                                {ciclo.año && (
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                                        {ciclo.año}
+                                    </span>
+                                )}
                             </div>
 
                             {ciclo.descripcion && (
@@ -222,6 +248,34 @@ const CiclosManager = () => {
                                 className="pl-10 pr-4 py-2 border border-secondary-300 bg-white text-gray-900 rounded-lg 
                                             focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                             />
+                        </div>
+                        <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary-400 w-4 h-4" />
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                                className="pl-10 pr-8 py-2 border border-secondary-300 bg-white text-gray-900 rounded-lg 
+                                            focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="">Todos los años</option>
+                                {[...new Set(ciclos.map(ciclo => ciclo.año).filter(Boolean))].sort((a, b) => b - a).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="relative">
+                            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary-400 w-4 h-4" />
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                className="pl-10 pr-8 py-2 border border-secondary-300 bg-white text-gray-900 rounded-lg 
+                                            focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="">Todos los estados</option>
+                                <option value="Próximo">Próximo</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">

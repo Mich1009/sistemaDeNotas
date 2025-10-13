@@ -8,12 +8,12 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
     
     const [formData, setFormData] = useState({
         nombre: '',
-        codigo: '',
-        creditos: '',
-        horas_semanales: '',
+        descripcion: '',
         ciclo_id: '',
         docente_id: ''
     });
+
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,23 +23,25 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
         if (mode === 'edit' && initialData) {
             setFormData({
                 nombre: initialData.nombre || '',
-                codigo: initialData.codigo || '',
-                creditos: initialData.creditos?.toString() || '',
-                horas_semanales: initialData.horas_semanales?.toString() || '',
+                descripcion: initialData.descripcion || '',
                 ciclo_id: initialData.ciclo_id?.toString() || '',
                 docente_id: initialData.docente_id?.toString() || ''
             });
+            // Set the year based on the ciclo's year
+            const ciclo = ciclos.find(c => c.id === initialData.ciclo_id);
+            if (ciclo) {
+                setSelectedYear(ciclo.año.toString());
+            }
         } else if (mode === 'create') {
             setFormData({
                 nombre: '',
-                codigo: '',
-                creditos: '',
-                horas_semanales: '',
+                descripcion: '',
                 ciclo_id: '',
                 docente_id: ''
             });
+            setSelectedYear(new Date().getFullYear().toString());
         }
-    }, [mode, initialData, isOpen]);
+    }, [mode, initialData, isOpen, ciclos]);
 
     // Validar formulario
     const validateForm = () => {
@@ -48,22 +50,6 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
         // Validaciones requeridas
         if (!formData.nombre.trim()) {
             newErrors.nombre = 'El nombre del curso es obligatorio';
-        }
-
-        if (!formData.codigo.trim()) {
-            newErrors.codigo = 'El código del curso es obligatorio';
-        }
-
-        if (!formData.creditos) {
-            newErrors.creditos = 'Los créditos son obligatorios';
-        } else if (parseInt(formData.creditos) < 1 || parseInt(formData.creditos) > 10) {
-            newErrors.creditos = 'Los créditos deben estar entre 1 y 10';
-        }
-
-        if (!formData.horas_semanales) {
-            newErrors.horas_semanales = 'Las horas semanales son obligatorias';
-        } else if (parseInt(formData.horas_semanales) < 1 || parseInt(formData.horas_semanales) > 20) {
-            newErrors.horas_semanales = 'Las horas semanales deben estar entre 1 y 20';
         }
 
         if (!formData.ciclo_id) {
@@ -110,8 +96,6 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
             // Preparar datos para enviar
             const dataToSubmit = {
                 ...formData,
-                creditos: parseInt(formData.creditos),
-                horas_semanales: parseInt(formData.horas_semanales),
                 ciclo_id: parseInt(formData.ciclo_id),
                 docente_id: parseInt(formData.docente_id)
             };
@@ -123,9 +107,7 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
             if (mode === 'create') {
                 setFormData({
                     nombre: '',
-                    codigo: '',
-                    creditos: '',
-                    horas_semanales: '',
+                    descripcion: '',
                     ciclo_id: '',
                     docente_id: ''
                 });
@@ -146,9 +128,7 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
         if (!isSubmitting) {
             setFormData({
                 nombre: '',
-                codigo: '',
-                creditos: '',
-                horas_semanales: '',
+                descripcion: '',
                 ciclo_id: '',
                 docente_id: ''
             });
@@ -192,7 +172,7 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Información básica */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                         {/* Nombre */}
                         <div>
                             <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
@@ -217,92 +197,57 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                                 <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
                             )}
                         </div>
-
-                        {/* Código */}
-                        <div>
-                            <label htmlFor="codigo" className="block text-sm font-medium text-gray-700 mb-1">
-                                Código del Curso *
-                            </label>
-                            <div className="relative">
-                                <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <input
-                                    type="text"
-                                    id="codigo"
-                                    name="codigo"
-                                    value={formData.codigo}
-                                    onChange={handleInputChange}
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                         errors.codigo ? 'border-red-500' : 'border-gray-300'
-                                     }`}
-                                    placeholder="Ej: PROG001"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            {errors.codigo && (
-                                <p className="text-red-500 text-sm mt-1">{errors.codigo}</p>
-                            )}
-                        </div>
                     </div>
 
-                    {/* Créditos y Horas */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Créditos */}
-                        <div>
-                            <label htmlFor="creditos" className="block text-sm font-medium text-gray-700 mb-1">
-                                Créditos *
-                            </label>
-                            <div className="relative">
-                                <Award className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <input
-                                    type="number"
-                                    id="creditos"
-                                    name="creditos"
-                                    value={formData.creditos}
-                                    onChange={handleInputChange}
-                                    min="1"
-                                    max="10"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                         errors.creditos ? 'border-red-500' : 'border-gray-300'
-                                     }`}
-                                    placeholder="3"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            {errors.creditos && (
-                                <p className="text-red-500 text-sm mt-1">{errors.creditos}</p>
-                            )}
-                        </div>
-
-                        {/* Horas Semanales */}
-                        <div>
-                            <label htmlFor="horas_semanales" className="block text-sm font-medium text-gray-700 mb-1">
-                                Horas Semanales *
-                            </label>
-                            <div className="relative">
-                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <input
-                                    type="number"
-                                    id="horas_semanales"
-                                    name="horas_semanales"
-                                    value={formData.horas_semanales}
-                                    onChange={handleInputChange}
-                                    min="1"
-                                    max="20"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                         errors.horas_semanales ? 'border-red-500' : 'border-gray-300'
-                                     }`}
-                                    placeholder="4"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            {errors.horas_semanales && (
-                                <p className="text-red-500 text-sm mt-1">{errors.horas_semanales}</p>
-                            )}
-                        </div>
+                    {/* Descripción */}
+                    <div>
+                        <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">
+                            Descripción
+                        </label>
+                        <textarea
+                            id="descripcion"
+                            name="descripcion"
+                            value={formData.descripcion}
+                            onChange={handleInputChange}
+                            rows={3}
+                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
+                                 errors.descripcion ? 'border-red-500' : 'border-gray-300'
+                             }`}
+                            placeholder="Descripción del curso (opcional)"
+                            disabled={isSubmitting}
+                        />
+                        {errors.descripcion && (
+                            <p className="text-red-500 text-sm mt-1">{errors.descripcion}</p>
+                        )}
                     </div>
 
-                    {/* Ciclo y Docente */}
+                    {/* Selección de Año y Ciclo */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Año */}
+                        <div>
+                            <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
+                                Año *
+                            </label>
+                            <select
+                                id="year"
+                                value={selectedYear}
+                                onChange={(e) => {
+                                    setSelectedYear(e.target.value);
+                                    // Reset ciclo selection when year changes
+                                    setFormData(prev => ({ ...prev, ciclo_id: '' }));
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900"
+                                disabled={isSubmitting}
+                            >
+                                <option value="">Seleccionar año</option>
+                                {[...new Set(ciclos.map(ciclo => ciclo.año))].sort((a, b) => b - a).map(año => (
+                                    <option key={año} value={año}>
+                                        {año}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* Ciclo */}
                         <div>
                             <label htmlFor="ciclo_id" className="block text-sm font-medium text-gray-700 mb-1">
@@ -313,52 +258,54 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                                 name="ciclo_id"
                                 value={formData.ciclo_id}
                                 onChange={handleInputChange}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
+                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
                                      errors.ciclo_id ? 'border-red-500' : 'border-gray-300'
                                  }`}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || !selectedYear}
                             >
                                 <option value="">Seleccionar ciclo</option>
-                                {ciclos.map(ciclo => (
-                                    <option key={ciclo.id} value={ciclo.id}>
-                                        {ciclo.nombre}
-                                    </option>
-                                ))}
+                                {ciclos
+                                    .filter(ciclo => selectedYear && ciclo.año.toString() === selectedYear)
+                                    .map(ciclo => (
+                                        <option key={ciclo.id} value={ciclo.id}>
+                                            {ciclo.nombre}
+                                        </option>
+                                    ))}
                             </select>
                             {errors.ciclo_id && (
                                 <p className="text-red-500 text-sm mt-1">{errors.ciclo_id}</p>
                             )}
                         </div>
+                    </div>
 
-                        {/* Docente */}
-                        <div>
-                            <label htmlFor="docente_id" className="block text-sm font-medium text-gray-700 mb-1">
-                                Docente *
-                            </label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <select
-                                    id="docente_id"
-                                    name="docente_id"
-                                    value={formData.docente_id}
-                                    onChange={handleInputChange}
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
-                                         errors.docente_id ? 'border-red-500' : 'border-gray-300'
-                                     }`}
-                                    disabled={isSubmitting}
-                                >
-                                    <option value="">Seleccionar docente</option>
-                                    {docentes.filter(docente => docente.is_active).map(docente => (
-                                        <option key={docente.id} value={docente.id}>
-                                            {docente.first_name} {docente.last_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            {errors.docente_id && (
-                                <p className="text-red-500 text-sm mt-1">{errors.docente_id}</p>
-                            )}
+                    {/* Docente */}
+                    <div>
+                        <label htmlFor="docente_id" className="block text-sm font-medium text-gray-700 mb-1">
+                            Docente *
+                        </label>
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <select
+                                id="docente_id"
+                                name="docente_id"
+                                value={formData.docente_id}
+                                onChange={handleInputChange}
+                                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none bg-white text-gray-900 ${
+                                     errors.docente_id ? 'border-red-500' : 'border-gray-300'
+                                 }`}
+                                disabled={isSubmitting}
+                            >
+                                <option value="">Seleccionar docente</option>
+                                {docentes.filter(docente => docente.is_active).map(docente => (
+                                    <option key={docente.id} value={docente.id}>
+                                        {docente.first_name} {docente.last_name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
+                        {errors.docente_id && (
+                            <p className="text-red-500 text-sm mt-1">{errors.docente_id}</p>
+                        )}
                     </div>
 
                     {/* Buttons */}
@@ -367,14 +314,14 @@ const CursoModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                             type="button"
                             onClick={handleClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                            className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Guardando...' : (mode === 'create' ? 'Crear Curso' : 'Actualizar Curso')}
                         </button>

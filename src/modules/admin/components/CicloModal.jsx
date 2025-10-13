@@ -9,6 +9,7 @@ import {
 const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = null }) => {
     const [formData, setFormData] = useState({
         nombre: '',
+        numero: '',
         descripcion: '',
         fecha_inicio: '',
         fecha_fin: ''
@@ -17,11 +18,22 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Opciones de ciclos con números romanos
+    const cicloOptions = [
+        { value: 'I', numero: 1 },
+        { value: 'II', numero: 2 },
+        { value: 'III', numero: 3 },
+        { value: 'IV', numero: 4 },
+        { value: 'V', numero: 5 },
+        { value: 'VI', numero: 6 }
+    ];
+
     useEffect(() => {
         if (isOpen) {
             if (mode === 'edit' && initialData) {
                 setFormData({
                     nombre: initialData.nombre || '',
+                    numero: initialData.numero || '',
                     descripcion: initialData.descripcion || '',
                     fecha_inicio: initialData.fecha_inicio ? 
                         new Date(initialData.fecha_inicio).toISOString().split('T')[0] : '',
@@ -31,6 +43,7 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
             } else {
                 setFormData({
                     nombre: '',
+                    numero: '',
                     descripcion: '',
                     fecha_inicio: '',
                     fecha_fin: ''
@@ -42,10 +55,21 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        
+        // Si es el campo nombre (ciclo), también actualizar el número automáticamente
+        if (name === 'nombre') {
+            const selectedCiclo = cicloOptions.find(ciclo => ciclo.value === value);
+            setFormData(prev => ({
+                ...prev,
+                [name]: value,
+                numero: selectedCiclo ? selectedCiclo.numero : ''
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
         
         // Clear error when user starts typing
         if (errors[name]) {
@@ -66,6 +90,13 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
             newErrors.nombre = '';
         } else if (formData.nombre.trim().length > 100) {
             newErrors.nombre = 'El nombre no puede exceder 100 caracteres';
+        }
+
+        // Validar numero
+        if (!formData.numero) {
+            newErrors.numero = 'Debe seleccionar un ciclo para asignar el número automáticamente';
+        } else if (isNaN(formData.numero) || parseInt(formData.numero) < 1 || parseInt(formData.numero) > 10) {
+            newErrors.numero = 'El número debe ser entre 1 y 10';
         }
 
         // Validar fecha de inicio
@@ -130,25 +161,57 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {/* Nombre del Ciclo */}
-                    <div>
-                        <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
-                            Nombre del Ciclo *
-                        </label>
-                        <input
-                            type="text"
-                            id="nombre"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                errors.nombre ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="Ej: Ciclo I - 2024"
-                        />
-                        {errors.nombre && (
-                            <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>
-                        )}
+                    {/* Ciclo y Número en la misma fila */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Nombre del Ciclo */}
+                        <div>
+                            <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+                                Ciclo *
+                            </label>
+                            <select
+                                id="nombre"
+                                name="nombre"
+                                value={formData.nombre}
+                                onChange={handleInputChange}
+                                className={`w-full px-3 py-3 bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                                    errors.nombre ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                            >
+                                <option value="">Seleccionar ciclo</option>
+                                {cicloOptions.map((ciclo) => (
+                                    <option key={ciclo.value} value={ciclo.value}>
+                                        {ciclo.value}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.nombre && (
+                                <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>
+                            )}
+                        </div>
+
+                        {/* Número del Ciclo */}
+                        <div>
+                            <label htmlFor="numero" className="block text-sm font-medium text-gray-700 mb-1">
+                                Número del Ciclo *
+                            </label>
+                            <input
+                                type="number"
+                                id="numero"
+                                name="numero"
+                                value={formData.numero}
+                                onChange={handleInputChange}
+                                min="1"
+                                max="10"
+                                readOnly
+                                className={`w-full px-3 py-2 bg-gray-100 text-gray-700 border rounded-md shadow-sm focus:outline-none ${
+                                    errors.numero ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                                placeholder="Se asigna automáticamente"
+                            />
+                            {errors.numero && (
+                                <p className="mt-1 text-sm text-red-600">{errors.numero}</p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Descripción */}
@@ -163,7 +226,7 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                             value={formData.descripcion}
                             onChange={handleInputChange}
                             rows={3}
-                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Descripción opcional del ciclo académico..."
                         />
                     </div>
@@ -182,7 +245,7 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                                 name="fecha_inicio"
                                 value={formData.fecha_inicio}
                                 onChange={handleInputChange}
-                                className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
                                     errors.fecha_inicio ? 'border-red-500' : 'border-gray-300'
                                 }`}
                             />
@@ -203,7 +266,7 @@ const CicloModal = ({ isOpen, onClose, onSubmit, mode = 'create', initialData = 
                                 name="fecha_fin"
                                 value={formData.fecha_fin}
                                 onChange={handleInputChange}
-                                className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
                                     errors.fecha_fin ? 'border-red-500' : 'border-gray-300'
                                 }`}
                             />
