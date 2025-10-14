@@ -190,6 +190,11 @@ export const matriculasService = {
 
 // Servicios de Reportes
 export const reportesService = {
+    getEstadisticasGenerales: async () => {
+        const response = await api.get('/admin/reportes/estadisticas-generales');
+        return response.data;
+    },
+
     getRendimientoEstudiantes: async (params = {}) => {
         const response = await api.get('/admin/reportes/rendimiento-estudiantes', { params });
         return response.data;
