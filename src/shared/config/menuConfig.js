@@ -2,6 +2,7 @@ import {
     Users,
     BookOpen,
     GraduationCap,
+    Folder,
     FileText,
     Settings,
     BarChart3,
@@ -58,7 +59,7 @@ export const menuConfigs = {
         {
             id: 'matriculas',
             label: 'Matriculas',
-            icon: GraduationCap,
+            icon: Folder,
             component: Matriculas
         },
         {
