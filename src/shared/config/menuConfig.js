@@ -24,7 +24,6 @@ import Configuracion from '../../modules/admin/components/Configuracion';
 import TeacherDashboard from '../../modules/teacher/components/Dashboard';
 import MyCourses from '../../modules/teacher/components/MyCourses';
 import Grades from '../../modules/teacher/components/Grades';
-import Assignments from '../../modules/teacher/components/Assignments';
 import TeacherSchedule from '../../modules/teacher/components/Schedule';
 import TeacherReports from '../../modules/teacher/components/TeacherReports';
 import TeacherProfile from '../../modules/teacher/components/Profile';
@@ -98,12 +97,6 @@ export const menuConfigs = {
             label: 'Calificaciones',
             icon: Award,
             component: Grades
-        },
-        {
-            id: 'assignments',
-            label: 'Tareas y Evaluaciones',
-            icon: FileText,
-            component: Assignments
         },
         {
             id: 'schedule',
