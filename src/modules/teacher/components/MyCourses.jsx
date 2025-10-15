@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Users, FileText, Edit, Eye, Search, Filter } from 'lucide-react';
+import { BookOpen, Users, FileText, Edit, Eye, Search, Filter, Calendar } from 'lucide-react';
 import { getCourses, academicService } from '../services/apiTeacher';
+import { cursosService } from '../../admin/services/apiAdmin';
 import useAuthStore from '../../../modules/auth/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -12,7 +13,10 @@ const MyCourses = () => {
     const [showStudents, setShowStudents] = useState(false);
     const [showCourseDetails, setShowCourseDetails] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+    const [selectedCycle, setSelectedCycle] = useState('');
     const [editMode, setEditMode] = useState(false);
+    const [allCycles, setAllCycles] = useState([]);
     const [courseData, setCourseData] = useState({
         nombre: '',
         descripcion: ''
@@ -22,6 +26,7 @@ const MyCourses = () => {
 
     useEffect(() => {
         fetchCourses();
+        fetchAllCycles();
     }, []);
 
     const fetchCourses = async () => {
@@ -34,6 +39,16 @@ const MyCourses = () => {
             toast.error('No se pudieron cargar los cursos');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAllCycles = async () => {
+        try {
+            const response = await cursosService.getCiclos();
+            setAllCycles(response || []);
+        } catch (error) {
+            console.error('Error al cargar ciclos:', error);
+            toast.error('Error al cargar los ciclos');
         }
     };
 
@@ -96,34 +111,94 @@ const MyCourses = () => {
         setSelectedCourse(null);
     };
 
-    const filteredCourses = courses.filter(course => 
-        course.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Obtener años únicos de todos los ciclos disponibles
+    const availableYears = [...new Set(allCycles.map(cycle => 
+        cycle.año
+    ))].filter(Boolean).sort((a, b) => b - a);
+
+    // Obtener ciclos únicos filtrados por año seleccionado
+    const availableCycles = [...new Set(allCycles
+        .filter(cycle => !selectedYear || cycle.año?.toString() === selectedYear)
+        .map(cycle => cycle.nombre)
+    )].filter(Boolean).sort();
+
+    const filteredCourses = courses.filter(course => {
+        // Filtrar por término de búsqueda
+        const matchesSearch = course.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Filtrar por año
+        const matchesYear = !selectedYear || course.ciclo_año?.toString() === selectedYear;
+        
+        // Filtrar por ciclo
+        const matchesCycle = !selectedCycle || course.ciclo_nombre === selectedCycle;
+        
+        return matchesSearch && matchesYear && matchesCycle;
+    });
 
     // Renderizado condicional para la lista de cursos
     if (!showStudents && !showCourseDetails) {
         return (
-            <div className="p-6">
+            <div className="p-3">
                 <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <BookOpen className="mr-2" /> Mis Cursos
                 </h1>
                 
                 <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                     <div className="flex flex-col md:flex-row justify-between mb-6">
-                        <div className="relative mb-4 md:mb-0 md:w-1/2">
-                            <input
-                                type="text"
-                                placeholder="Buscar por nombre o código..."
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 mr-4">
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por nombre..."
+                                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Year Filter */}
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => {
+                                        setSelectedYear(e.target.value);
+                                        setSelectedCycle(''); // Reset cycle filter when year changes
+                                    }}
+                                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                                >
+                                    <option value="">Todos los años</option>
+                                    {availableYears.map(year => (
+                                        <option key={year} value={year}>
+                                            {year}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Cycle Filter */}
+                            <div className="relative">
+                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                                <select
+                                    value={selectedCycle}
+                                    onChange={(e) => setSelectedCycle(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                                >
+                                    <option value="">Todos los ciclos</option>
+                                    {availableCycles.map(cycle => (
+                                        <option key={cycle} value={cycle}>
+                                            {cycle}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <div className="flex items-center">
+                        
+                        <div className="flex items-center mt-4 md:mt-0">
                             <Filter className="mr-2 text-gray-500" size={18} />
-                            <span className="text-gray-700">Total: {courses.length} cursos</span>
+                            <span className="text-gray-700">Total: {filteredCourses.length} cursos</span>
                         </div>
                     </div>
 
@@ -142,20 +217,15 @@ const MyCourses = () => {
                                 <div key={course.id} className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow">
                                     <div className="p-5 border-b">
                                         <h3 className="text-lg font-semibold text-gray-800">{course.nombre}</h3>
-                                        <p className="text-sm text-gray-500">Código: {course.codigo}</p>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <p className="text-sm text-gray-500">Ciclo: {course.ciclo_nombre}</p>
+                                            <p className="text-sm text-blue-600 font-medium">Año: {course.ciclo_año}</p>
+                                        </div>
                                     </div>
                                     <div className="p-5">
                                         <div className="flex items-center mb-3">
-                                            <BookOpen size={16} className="text-blue-500 mr-2" />
-                                            <span className="text-sm">Créditos: {course.creditos}</span>
-                                        </div>
-                                        <div className="flex items-center mb-3">
                                             <Users size={16} className="text-green-500 mr-2" />
                                             <span className="text-sm">Estudiantes: {course.total_estudiantes || 0}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <FileText size={16} className="text-purple-500 mr-2" />
-                                            <span className="text-sm">Ciclo: {course.ciclo_nombre}</span>
                                         </div>
                                     </div>
                                     <div className="p-4 bg-gray-50 border-t flex justify-between">
@@ -200,18 +270,14 @@ const MyCourses = () => {
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                         <h3 className="font-semibold text-blue-800">Información del curso</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                            <div>
-                                <span className="text-sm text-gray-500">Código:</span>
-                                <p className="font-medium">{selectedCourse.codigo}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm text-gray-500">Créditos:</span>
-                                <p className="font-medium">{selectedCourse.creditos}</p>
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                             <div>
                                 <span className="text-sm text-gray-500">Ciclo:</span>
                                 <p className="font-medium">{selectedCourse.ciclo_nombre}</p>
+                            </div>
+                            <div>
+                                <span className="text-sm text-gray-500">Año:</span>
+                                <p className="font-medium">{selectedCourse.ciclo_año}</p>
                             </div>
                         </div>
                     </div>
@@ -282,7 +348,7 @@ const MyCourses = () => {
                         <>
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-semibold text-gray-800">
-                                    {selectedCourse.nombre} ({selectedCourse.codigo})
+                                    {selectedCourse.nombre}
                                 </h2>
                                 <button
                                     onClick={() => setEditMode(!editMode)}
@@ -297,16 +363,8 @@ const MyCourses = () => {
                                     <h3 className="font-semibold text-gray-700 mb-2">Información General</h3>
                                     <div className="space-y-3">
                                         <div>
-                                            <span className="text-sm text-gray-500">Código:</span>
-                                            <p className="font-medium">{selectedCourse.codigo}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-sm text-gray-500">Créditos:</span>
-                                            <p className="font-medium">{selectedCourse.creditos}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-sm text-gray-500">Horas Semanales:</span>
-                                            <p className="font-medium">{selectedCourse.horas_semanales}</p>
+                                            <span className="text-sm text-gray-500">Nombre:</span>
+                                            <p className="font-medium">{selectedCourse.nombre}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -317,6 +375,10 @@ const MyCourses = () => {
                                         <div>
                                             <span className="text-sm text-gray-500">Ciclo:</span>
                                             <p className="font-medium">{selectedCourse.ciclo_nombre}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-500">Año:</span>
+                                            <p className="font-medium">{selectedCourse.ciclo_año}</p>
                                         </div>
                                         <div>
                                             <span className="text-sm text-gray-500">Estudiantes Matriculados:</span>
