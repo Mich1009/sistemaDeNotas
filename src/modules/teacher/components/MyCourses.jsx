@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Users, FileText, Edit, Eye, Search, Filter } from 'lucide-react';
-import { academicService } from '../services/apiTeacher';
+import { getCourses, academicService } from '../services/apiTeacher';
 import useAuthStore from '../../../modules/auth/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -27,8 +27,8 @@ const MyCourses = () => {
     const fetchCourses = async () => {
         setLoading(true);
         try {
-            const data = await academicService.getCourses();
-            setCourses(data);
+            const response = await getCourses();
+            setCourses(response.data || []);
         } catch (error) {
             console.error('Error al cargar cursos:', error);
             toast.error('No se pudieron cargar los cursos');

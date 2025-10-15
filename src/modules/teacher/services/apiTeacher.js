@@ -1,5 +1,23 @@
 import api from "../../../shared/utils/axiosInstance";
 
+// Función principal para obtener cursos
+export const getCourses = async (params = {}) => {
+    const response = await api.get('/teacher/courses', { params });
+    return response;
+};
+
+// Función para obtener estudiantes con notas
+export const getStudentsWithGrades = async (courseId) => {
+    const response = await api.get(`/teacher/courses/${courseId}/students-with-grades`);
+    return response;
+};
+
+// Función para crear/actualizar notas masivamente
+export const updateGradesBulk = async (courseId, gradesData) => {
+    const response = await api.put(`/teacher/courses/${courseId}/grades/bulk`, gradesData);
+    return response;
+};
+
 // Servicios académicos (para docente)
 export const academicService = {
     getCourses: async (params = {}) => {

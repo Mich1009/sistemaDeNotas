@@ -12,7 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../auth/store/authStore';
-import { academicService, gradesService } from '../services/apiTeacher';
+import { getCourses } from '../services/apiTeacher';
 
 const Dashboard = () => {
   const { user } = useAuthStore();
@@ -33,11 +33,11 @@ const Dashboard = () => {
       setLoading(true);
       
       // Cargar cursos del docente
-      const courses = await academicService.getCourses();
-      const myCourses = courses.filter(course => course.docente_id === user.id);
+      const response = await getCourses();
+      const myCourses = response.data || [];
       
       // Calcular estadísticas
-      const totalStudents = myCourses.reduce((sum, course) => sum + (course.enrolled_count || 0), 0);
+      const totalStudents = myCourses.reduce((sum, course) => sum + (course.total_estudiantes || 0), 0);
       
       setStats({
         myCourses,
@@ -88,11 +88,11 @@ const Dashboard = () => {
             <div className="flex items-center space-x-4 text-xs text-secondary-500">
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
-                {course.enrolled_count || 0} estudiantes
+                {course.total_estudiantes || 0} estudiantes
               </div>
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
-                {course.ciclo?.nombre || 'Sin ciclo'}
+                {course.ciclo_nombre || 'Sin ciclo'}
               </div>
             </div>
           </div>
