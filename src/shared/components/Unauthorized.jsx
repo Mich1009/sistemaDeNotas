@@ -11,9 +11,7 @@ const Unauthorized = () => {
                     <AlertTriangle className="w-8 h-8 text-red-600" />
                 </div>
 
-                <h1 className="text-2xl font-bold text-secondary-800 mb-4">
-                    Acceso No Autorizado
-                </h1>
+                <h1 className="text-2xl font-bold text-secondary-800 mb-4">Acceso No Autorizado</h1>
 
                 <p className="text-secondary-600 mb-8">
                     No tienes permisos para acceder a esta página.

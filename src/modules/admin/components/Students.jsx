@@ -218,7 +218,7 @@ const Students = () => {
                         <select
                             value={enrollmentStatus}
                             onChange={(e) => { setEnrollmentStatus(e.target.value); setPage(1); }}
-                            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white text-gray-900"
                         >
                             <option value="matriculados">Matriculados</option>
                             <option value="sin_matricular">Sin Matricular</option>
