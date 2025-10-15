@@ -80,7 +80,9 @@ export const useDocentes = () => {
     const getDocenteCursos = async (id) => {
         try {
             setError(null);
-            return await docentesService.getDocenteCursos(id);
+            const response = await docentesService.getDocenteCursos(id);
+            // Extraer solo el array de cursos de la respuesta
+            return response.cursos || [];
         } catch (err) {
             setError(err.message || 'Error al obtener cursos del docente');
             throw err;

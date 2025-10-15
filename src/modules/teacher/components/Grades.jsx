@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Users, FileText, Edit, Save, Plus, Trash2, Search, Filter, AlertCircle } from 'lucide-react';
-import { academicService, gradesService } from '../services/apiTeacher';
+import { getCourses, getStudentsWithGrades, updateGradesBulk, academicService, gradesService } from '../services/apiTeacher';
 import useAuthStore from '../../../modules/auth/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -23,6 +23,8 @@ const Grades = () => {
         valor: '',
         descripcion: ''
     });
+    const [editableGrades, setEditableGrades] = useState({});
+    const [hasChanges, setHasChanges] = useState(false);
 
     const user = useAuthStore(state => state.user);
 
@@ -33,8 +35,8 @@ const Grades = () => {
     const fetchCourses = async () => {
         setLoading(true);
         try {
-            const data = await academicService.getCourses();
-            setCourses(data);
+            const response = await getCourses();
+            setCourses(response.data || []);
         } catch (error) {
             console.error('Error al cargar cursos:', error);
             toast.error('No se pudieron cargar los cursos');
@@ -47,12 +49,10 @@ const Grades = () => {
         setSelectedCourse(courseId);
         setLoading(true);
         try {
-            const studentsData = await academicService.getStudentsByCourse(courseId);
-            console.log("📘 Estudiantes del curso:", studentsData); 
-            setStudents(studentsData);
-            
-            const gradesData = await gradesService.getGradesByCourse(courseId);
-            setGrades(gradesData);
+            const response = await getStudentsWithGrades(courseId);
+            console.log("📘 Estudiantes del curso:", response.data); 
+            setStudents(response.data || []);
+            setGrades(response.data || []);
         } catch (error) {
             console.error('Error al cargar datos del curso:', error);
             toast.error('No se pudieron cargar los datos del curso');
@@ -157,11 +157,59 @@ const Grades = () => {
     };
 
     const calculateAverage = (studentId) => {
-        const studentGrades = getStudentGrades(studentId);
-        if (studentGrades.length === 0) return '-';
+        const student = students.find(s => s.id === studentId);
+        if (!student) return '-';
         
-        const sum = studentGrades.reduce((acc, grade) => acc + grade.valor, 0);
-        return (sum / studentGrades.length).toFixed(2);
+        const editable = editableGrades[studentId];
+        const nota1 = editable?.nota1 || student.nota1 || 0;
+        const nota2 = editable?.nota2 || student.nota2 || 0;
+        const nota3 = editable?.nota3 || student.nota3 || 0;
+        const nota4 = editable?.nota4 || student.nota4 || 0;
+        
+        const notas = [nota1, nota2, nota3, nota4].filter(n => n > 0);
+        if (notas.length === 0) return '-';
+        
+        const sum = notas.reduce((acc, nota) => acc + nota, 0);
+        return (sum / notas.length).toFixed(2);
+    };
+
+    const handleGradeChange = (studentId, gradeType, value) => {
+        setEditableGrades(prev => ({
+            ...prev,
+            [studentId]: {
+                ...prev[studentId],
+                [gradeType]: value
+            }
+        }));
+        setHasChanges(true);
+    };
+
+    const handleSaveAllGrades = async () => {
+        if (!selectedCourse) return;
+        
+        setLoading(true);
+        try {
+            const gradesToSave = Object.entries(editableGrades).map(([studentId, grades]) => ({
+                estudiante_id: parseInt(studentId),
+                nota1: grades.nota1 ? parseFloat(grades.nota1) : null,
+                nota2: grades.nota2 ? parseFloat(grades.nota2) : null,
+                nota3: grades.nota3 ? parseFloat(grades.nota3) : null,
+                nota4: grades.nota4 ? parseFloat(grades.nota4) : null,
+                nota_final: grades.nota_final ? parseFloat(grades.nota_final) : null
+            }));
+
+            await updateGradesBulk(selectedCourse, { notas: gradesToSave });
+            toast.success('Notas guardadas correctamente');
+            setHasChanges(false);
+            setEditableGrades({});
+            // Recargar datos
+            handleCourseSelect(selectedCourse);
+        } catch (error) {
+            console.error('Error al guardar notas:', error);
+            toast.error('Error al guardar las notas');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredStudents = students.filter(student => {
@@ -216,6 +264,14 @@ const Grades = () => {
                         </h2>
                         
                         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                            {hasChanges && (
+                                <button
+                                    onClick={handleSaveAllGrades}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                                >
+                                    <Save size={16} className="mr-1" /> Guardar Todas las Notas
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowAddGradeForm(!showAddGradeForm)}
                                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
@@ -328,7 +384,11 @@ const Grades = () => {
                                     <tr>
                                         <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Estudiante</th>
                                         <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">DNI</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Calificaciones</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 1</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 2</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 3</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 4</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota Final</th>
                                         <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Promedio</th>
                                         <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Acciones</th>
                                     </tr>
@@ -344,70 +404,64 @@ const Grades = () => {
                                             </td>
                                             <td className="py-3 px-4 text-sm text-gray-700">{student.dni}</td>
                                             <td className="py-3 px-4">
-                                                <div className="space-y-2">
-                                                    {getStudentGrades(student.id).length === 0 ? (
-                                                        <p className="text-sm text-gray-500 italic">Sin calificaciones</p>
-                                                    ) : (
-                                                        getStudentGrades(student.id).map((grade) => (
-                                                            <div key={grade.id} className="flex items-center space-x-2">
-                                                                {editingGradeId === grade.id ? (
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            max="20"
-                                                                            step="0.01"
-                                                                            className="w-16 px-2 py-1 border rounded-md text-sm"
-                                                                            value={editGradeData.valor}
-                                                                            onChange={(e) => setEditGradeData({...editGradeData, valor: e.target.value})}
-                                                                        />
-                                                                        <input
-                                                                            type="text"
-                                                                            className="w-32 px-2 py-1 border rounded-md text-sm"
-                                                                            value={editGradeData.descripcion}
-                                                                            onChange={(e) => setEditGradeData({...editGradeData, descripcion: e.target.value})}
-                                                                            placeholder="Descripción"
-                                                                        />
-                                                                        <button
-                                                                            onClick={() => handleUpdateGrade(grade.id)}
-                                                                            className="p-1 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
-                                                                        >
-                                                                            <Save size={14} />
-                                                                        </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <>
-                                                                        <span className={`inline-block w-10 text-center py-0.5 px-2 rounded-md text-sm font-medium ${
-                                                                            grade.valor >= 10.5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                                        }`}>
-                                                                            {grade.valor.toFixed(2)}
-                                                                        </span>
-                                                                        <span className="text-sm text-gray-600">
-                                                                            {grade.descripcion || 'Sin descripción'}
-                                                                        </span>
-                                                                        <span className="text-xs text-gray-400">
-                                                                            {new Date(grade.fecha).toLocaleDateString()}
-                                                                        </span>
-                                                                        <div className="flex space-x-1">
-                                                                            <button
-                                                                                onClick={() => handleEditGrade(grade)}
-                                                                                className="p-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                                                                            >
-                                                                                <Edit size={14} />
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={() => handleDeleteGrade(grade.id)}
-                                                                                className="p-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200"
-                                                                            >
-                                                                                <Trash2 size={14} />
-                                                                            </button>
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        ))
-                                                    )}
-                                                </div>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="20"
+                                                    step="0.01"
+                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
+                                                    value={editableGrades[student.id]?.nota1 || student.nota1 || ''}
+                                                    onChange={(e) => handleGradeChange(student.id, 'nota1', e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="20"
+                                                    step="0.01"
+                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
+                                                    value={editableGrades[student.id]?.nota2 || student.nota2 || ''}
+                                                    onChange={(e) => handleGradeChange(student.id, 'nota2', e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="20"
+                                                    step="0.01"
+                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
+                                                    value={editableGrades[student.id]?.nota3 || student.nota3 || ''}
+                                                    onChange={(e) => handleGradeChange(student.id, 'nota3', e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="20"
+                                                    step="0.01"
+                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
+                                                    value={editableGrades[student.id]?.nota4 || student.nota4 || ''}
+                                                    onChange={(e) => handleGradeChange(student.id, 'nota4', e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="20"
+                                                    step="0.01"
+                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
+                                                    value={editableGrades[student.id]?.nota_final || student.nota_final || ''}
+                                                    onChange={(e) => handleGradeChange(student.id, 'nota_final', e.target.value)}
+                                                    placeholder="0.00"
+                                                />
                                             </td>
                                             <td className="py-3 px-4">
                                                 <span className={`inline-block py-1 px-3 rounded-full text-sm font-medium ${

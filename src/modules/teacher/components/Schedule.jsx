@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Filter, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../modules/auth/store/authStore';
+import { getCourses } from '../services/apiTeacher';
 
 const Schedule = () => {
     const { user } = useAuthStore();
@@ -25,8 +26,10 @@ const Schedule = () => {
     }, []);
 
     useEffect(() => {
-        fetchScheduleItems();
-    }, [selectedCourse, currentDate, viewMode]);
+        if (courses.length > 0) {
+            fetchScheduleItems();
+        }
+    }, [courses, selectedCourse, currentDate, viewMode]);
 
     const calculateCurrentWeek = (date) => {
         const day = date.getDay();
@@ -46,18 +49,9 @@ const Schedule = () => {
     const fetchCourses = async () => {
         try {
             setLoading(true);
-            // Simulación de carga de cursos
-            setTimeout(() => {
-                const mockCourses = [
-                    { id: 1, name: 'Matemáticas Avanzadas', code: 'MAT101' },
-                    { id: 2, name: 'Programación', code: 'PRG202' },
-                    { id: 3, name: 'Física Cuántica', code: 'FIS303' },
-                    { id: 4, name: 'Estadística', code: 'EST104' },
-                    { id: 5, name: 'Algoritmos', code: 'ALG205' }
-                ];
-                setCourses(mockCourses);
-                setLoading(false);
-            }, 500);
+            const response = await getCourses();
+            setCourses(response.data || []);
+            setLoading(false);
         } catch (error) {
             console.error('Error al cargar los cursos:', error);
             toast.error('Error al cargar los cursos');
@@ -68,50 +62,65 @@ const Schedule = () => {
     const fetchScheduleItems = async () => {
         try {
             setLoading(true);
-            // Simulación de carga de horarios
-            setTimeout(() => {
-                setScheduleItems(getMockScheduleItems());
-                setLoading(false);
-            }, 500);
+            // Generar horarios basados en los cursos reales
+            const scheduleItems = getMockScheduleItems();
+            
+            // Filtrar por curso seleccionado si no es "all"
+            const filteredItems = selectedCourse === 'all' 
+                ? scheduleItems 
+                : scheduleItems.filter(item => item.course_id === parseInt(selectedCourse));
+            
+            setScheduleItems(filteredItems);
+            setLoading(false);
         } catch (error) {
             console.error('Error al cargar el horario:', error);
             toast.error('Error al cargar el horario');
             setLoading(false);
-            // Usar datos de ejemplo en caso de error
-            setScheduleItems(getMockScheduleItems());
+            setScheduleItems([]);
         }
     };
 
-    // Función para generar datos de ejemplo
+    // Función para generar horarios basados en los cursos reales
     const getMockScheduleItems = () => {
-        const mockCourses = [
-            { id: 1, name: 'Matemáticas Avanzadas', color: 'bg-blue-100 border-blue-500' },
-            { id: 2, name: 'Programación', color: 'bg-green-100 border-green-500' },
-            { id: 3, name: 'Física Cuántica', color: 'bg-purple-100 border-purple-500' },
-            { id: 4, name: 'Estadística', color: 'bg-yellow-100 border-yellow-500' },
-            { id: 5, name: 'Algoritmos', color: 'bg-red-100 border-red-500' }
+        if (courses.length === 0) return [];
+        
+        const colors = [
+            'bg-blue-100 border-blue-500',
+            'bg-green-100 border-green-500',
+            'bg-purple-100 border-purple-500',
+            'bg-yellow-100 border-yellow-500',
+            'bg-red-100 border-red-500',
+            'bg-indigo-100 border-indigo-500',
+            'bg-pink-100 border-pink-500',
+            'bg-orange-100 border-orange-500'
         ];
         
         const mockItems = [];
         
-        // Generar horarios para la semana actual
-        for (let i = 0; i < 10; i++) {
-            const dayIndex = Math.floor(Math.random() * 5); // Lunes a Viernes
-            const hourStart = Math.floor(Math.random() * 10) + 7; // Entre 7 AM y 5 PM
-            const duration = Math.floor(Math.random() * 2) + 1; // 1 o 2 horas
-            const courseIndex = Math.floor(Math.random() * mockCourses.length);
+        // Generar horarios para cada curso
+        courses.forEach((course, courseIndex) => {
+            const color = colors[courseIndex % colors.length];
             
-            mockItems.push({
-                id: i + 1,
-                day: dayIndex,
-                start_time: `${hourStart}:00`,
-                end_time: `${hourStart + duration}:00`,
-                course_id: mockCourses[courseIndex].id,
-                course_name: mockCourses[courseIndex].name,
-                classroom: `Aula ${Math.floor(Math.random() * 20) + 101}`,
-                color: mockCourses[courseIndex].color
-            });
-        }
+            // Generar 2-3 clases por semana para cada curso
+            const classesPerWeek = Math.floor(Math.random() * 2) + 2; // 2-3 clases
+            
+            for (let i = 0; i < classesPerWeek; i++) {
+                const dayIndex = Math.floor(Math.random() * 5); // Lunes a Viernes
+                const hourStart = Math.floor(Math.random() * 10) + 7; // Entre 7 AM y 5 PM
+                const duration = Math.floor(Math.random() * 2) + 1; // 1 o 2 horas
+                
+                mockItems.push({
+                    id: `${course.id}-${i}`,
+                    day: dayIndex,
+                    start_time: `${hourStart}:00`,
+                    end_time: `${hourStart + duration}:00`,
+                    course_id: course.id,
+                    course_name: course.nombre,
+                    classroom: `Aula ${Math.floor(Math.random() * 20) + 101}`,
+                    color: color
+                });
+            }
+        });
         
         return mockItems;
     };
@@ -297,7 +306,7 @@ const Schedule = () => {
                                 <option value="all">Todos los cursos</option>
                                 {courses.map(course => (
                                     <option key={course.id} value={course.id}>
-                                        {course.name}
+                                        {course.nombre} ({course.codigo})
                                     </option>
                                 ))}
                             </select>
