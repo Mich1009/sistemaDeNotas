@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Users, FileText, Edit, Save, Plus, Trash2, Search, Filter, AlertCircle } from 'lucide-react';
-import { getCourses, getStudentsWithGrades, updateGradesBulk, academicService, gradesService } from '../services/apiTeacher';
+import { BookOpen, Users, FileText, Edit, Save, Plus, Trash2, Search, Filter, AlertCircle, Calculator, Check } from 'lucide-react';
+import { getCourses, getStudentsWithGrades, academicService, gradesService } from '../services/apiTeacher';
 import useAuthStore from '../../../modules/auth/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -8,23 +8,12 @@ const Grades = () => {
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [students, setStudents] = useState([]);
-    const [grades, setGrades] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [editingGradeId, setEditingGradeId] = useState(null);
-    const [newGradeData, setNewGradeData] = useState({
-        estudiante_id: '',
-        valor: '',
-        descripcion: '',
-        fecha: new Date().toISOString().split('T')[0]
-    });
-    const [showAddGradeForm, setShowAddGradeForm] = useState(false);
-    const [editGradeData, setEditGradeData] = useState({
-        valor: '',
-        descripcion: ''
-    });
     const [editableGrades, setEditableGrades] = useState({});
     const [hasChanges, setHasChanges] = useState(false);
+    const [activeTab, setActiveTab] = useState('evaluaciones');
+    const [savingRows, setSavingRows] = useState({}); // Track which rows are being saved
 
     const user = useAuthStore(state => state.user);
 
@@ -50,9 +39,24 @@ const Grades = () => {
         setLoading(true);
         try {
             const response = await getStudentsWithGrades(courseId);
-            console.log("📘 Estudiantes del curso:", response.data); 
+            console.log("📘 Estudiantes con notas:", response.data);
             setStudents(response.data || []);
-            setGrades(response.data || []);
+            
+            const initialEditable = {};
+            response.data.forEach(student => {
+                if (student.notas && student.notas.length > 0) {
+                    student.notas.forEach(nota => {
+                        if (!initialEditable[student.id]) {
+                            initialEditable[student.id] = {};
+                        }
+                        initialEditable[student.id] = {
+                            ...initialEditable[student.id],
+                            ...nota
+                        };
+                    });
+                }
+            });
+            setEditableGrades(initialEditable);
         } catch (error) {
             console.error('Error al cargar datos del curso:', error);
             toast.error('No se pudieron cargar los datos del curso');
@@ -61,127 +65,129 @@ const Grades = () => {
         }
     };
 
-    const handleAddGrade = async () => {
-        if (!selectedCourse || !newGradeData.estudiante_id || !newGradeData.valor) {
-            toast.error('Por favor complete todos los campos requeridos');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const gradeToAdd = {
-                ...newGradeData,
-                curso_id: selectedCourse,
-                valor: parseFloat(newGradeData.valor)
-            };
-            
-            const addedGrade = await gradesService.createGrade(gradeToAdd);
-            setGrades([...grades, addedGrade]);
-            
-            setNewGradeData({
-                estudiante_id: '',
-                valor: '',
-                descripcion: '',
-                fecha: new Date().toISOString().split('T')[0]
-            });
-            
-            setShowAddGradeForm(false);
-            toast.success('Calificación agregada correctamente');
-        } catch (error) {
-            console.error('Error al agregar calificación:', error);
-            toast.error('No se pudo agregar la calificación');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleEditGrade = (grade) => {
-        setEditingGradeId(grade.id);
-        setEditGradeData({
-            valor: grade.valor.toString(),
-            descripcion: grade.descripcion || ''
-        });
-    };
-
-    const handleUpdateGrade = async (gradeId) => {
-        if (!editGradeData.valor) {
-            toast.error('El valor de la calificación es requerido');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const updatedGrade = await gradesService.updateGrade(gradeId, {
-                valor: parseFloat(editGradeData.valor),
-                descripcion: editGradeData.descripcion
-            });
-            
-            setGrades(grades.map(grade => 
-                grade.id === gradeId ? {...grade, ...updatedGrade} : grade
-            ));
-            
-            setEditingGradeId(null);
-            toast.success('Calificación actualizada correctamente');
-        } catch (error) {
-            console.error('Error al actualizar calificación:', error);
-            toast.error('No se pudo actualizar la calificación');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDeleteGrade = async (gradeId) => {
-        if (!window.confirm('¿Está seguro de eliminar esta calificación?')) {
-            return;
-        }
-
-        setLoading(true);
-        try {
-            await gradesService.deleteGrade(gradeId);
-            setGrades(grades.filter(grade => grade.id !== gradeId));
-            toast.success('Calificación eliminada correctamente');
-        } catch (error) {
-            console.error('Error al eliminar calificación:', error);
-            toast.error('No se pudo eliminar la calificación');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getStudentById = (studentId) => {
-        return students.find(student => student.id === studentId);
-    };
-
-    const getStudentGrades = (studentId) => {
-        return grades.filter(grade => grade.estudiante_id === studentId);
-    };
-
-    const calculateAverage = (studentId) => {
-        const student = students.find(s => s.id === studentId);
-        if (!student) return '-';
-        
-        const editable = editableGrades[studentId];
-        const nota1 = editable?.nota1 || student.nota1 || 0;
-        const nota2 = editable?.nota2 || student.nota2 || 0;
-        const nota3 = editable?.nota3 || student.nota3 || 0;
-        const nota4 = editable?.nota4 || student.nota4 || 0;
-        
-        const notas = [nota1, nota2, nota3, nota4].filter(n => n > 0);
-        if (notas.length === 0) return '-';
-        
-        const sum = notas.reduce((acc, nota) => acc + nota, 0);
-        return (sum / notas.length).toFixed(2);
-    };
-
-    const handleGradeChange = (studentId, gradeType, value) => {
+    const handleGradeChange = (studentId, field, value) => {
         setEditableGrades(prev => ({
             ...prev,
             [studentId]: {
                 ...prev[studentId],
-                [gradeType]: value
+                [field]: value === '' ? null : parseFloat(value)
             }
         }));
         setHasChanges(true);
+    };
+    // 🔥 CORRECCIÓN - Envía campos DIRECTOS:
+
+    const handleSaveStudentGrades = async (studentId) => {
+        if (!selectedCourse) return;
+        
+        setSavingRows(prev => ({ ...prev, [studentId]: true }));
+        
+        try {
+            const studentGrades = editableGrades[studentId];
+            if (!studentGrades) {
+                toast.error('No hay notas para guardar');
+                return;
+            }
+    
+            // 👇 ESTRUCTURA SIMPLE - campos directos
+            const gradeToSave = {
+                estudiante_id: parseInt(studentId),
+                curso_id: selectedCourse,
+                tipo_evaluacion: "EVALUACION",
+                fecha_evaluacion: new Date().toISOString().split('T')[0],
+                observaciones: "Notas actualizadas",
+                peso: 1.0
+            };
+    
+            // 👇 COPIAR TODOS los campos de notas DIRECTAMENTE
+            for (let i = 1; i <= 8; i++) {
+                const key = `evaluacion${i}`;
+                if (studentGrades[key] !== undefined) {
+                    gradeToSave[key] = studentGrades[key];
+                }
+            }
+    
+            for (let i = 1; i <= 4; i++) {
+                const key = `practica${i}`;
+                if (studentGrades[key] !== undefined) {
+                    gradeToSave[key] = studentGrades[key];
+                }
+            }
+    
+            for (let i = 1; i <= 2; i++) {
+                const key = `parcial${i}`;
+                if (studentGrades[key] !== undefined) {
+                    gradeToSave[key] = studentGrades[key];
+                }
+            }
+    
+            // Verificar que hay datos para guardar
+            const hasGrades = Object.keys(gradeToSave).some(key => 
+                key.startsWith('evaluacion') || key.startsWith('practica') || key.startsWith('parcial')
+            );
+    
+            if (!hasGrades) {
+                toast.error('No hay notas válidas para guardar');
+                return;
+            }
+    
+            console.log("📤 ENVIANDO NOTA INDIVIDUAL:", { notas: [gradeToSave] });
+            
+            // ✅ RUTA CORRECTA para guardado masivo (funciona para 1 estudiante también)
+            await gradesService.updateGradesBulk(selectedCourse, { notas: [gradeToSave] });
+            
+            toast.success(`✅ Notas guardadas para ${getStudentName(studentId)}`);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            toast.error('❌ Error al guardar las notas');
+        } finally {
+            setSavingRows(prev => ({ ...prev, [studentId]: false }));
+        }
+    };
+    // Función corregida para detectar cambios
+    const hasUnsavedChanges = (studentId) => {
+        const student = students.find(s => s.id === parseInt(studentId));
+        if (!student) return false;
+    
+        const currentGrades = editableGrades[studentId] || {};
+        
+        // Si el estudiante no tenía notas antes pero ahora tiene, hay cambios
+        if (!student.notas || student.notas.length === 0) {
+            return Object.values(currentGrades).some(val => 
+                val !== null && val !== undefined && val !== ''
+            );
+        }
+    
+        // Combinar todas las notas originales del estudiante en un solo objeto
+        const originalGrades = {};
+        student.notas.forEach(nota => {
+            Object.entries(nota).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    originalGrades[key] = value;
+                }
+            });
+        });
+    
+        // Comparar cada campo
+        for (const [key, currentValue] of Object.entries(currentGrades)) {
+            const originalValue = originalGrades[key];
+            
+            // Si el valor actual es diferente al original, hay cambios
+            if (currentValue !== originalValue) {
+                // Manejar casos de null/undefined/string vacío
+                if (currentValue !== null && currentValue !== undefined && currentValue !== '') {
+                    if (originalValue === null || originalValue === undefined) {
+                        return true; // Se agregó una nueva nota
+                    }
+                    if (parseFloat(currentValue) !== parseFloat(originalValue)) {
+                        return true; // La nota cambió
+                    }
+                }
+            }
+        }
+    
+        return false;
     };
 
     const handleSaveAllGrades = async () => {
@@ -189,27 +195,160 @@ const Grades = () => {
         
         setLoading(true);
         try {
-            const gradesToSave = Object.entries(editableGrades).map(([studentId, grades]) => ({
-                estudiante_id: parseInt(studentId),
-                nota1: grades.nota1 ? parseFloat(grades.nota1) : null,
-                nota2: grades.nota2 ? parseFloat(grades.nota2) : null,
-                nota3: grades.nota3 ? parseFloat(grades.nota3) : null,
-                nota4: grades.nota4 ? parseFloat(grades.nota4) : null,
-                nota_final: grades.nota_final ? parseFloat(grades.nota_final) : null
-            }));
-
-            await updateGradesBulk(selectedCourse, { notas: gradesToSave });
-            toast.success('Notas guardadas correctamente');
+            const gradesToSave = [];
+            
+            // Recorrer todos los estudiantes que tienen cambios
+            Object.entries(editableGrades).forEach(([studentId, studentGrades]) => {
+                if (hasUnsavedChanges(studentId)) {
+                    const gradeToSave = {
+                        estudiante_id: parseInt(studentId),
+                        curso_id: selectedCourse,
+                        tipo_evaluacion: "EVALUACION",
+                        fecha_evaluacion: new Date().toISOString().split('T')[0],
+                        observaciones: "Actualización masiva",
+                        peso: 1.0
+                    };
+    
+                    // Copiar todos los campos de notas
+                    for (let i = 1; i <= 8; i++) {
+                        const key = `evaluacion${i}`;
+                        if (studentGrades[key] !== undefined) {
+                            gradeToSave[key] = studentGrades[key];
+                        }
+                    }
+    
+                    for (let i = 1; i <= 4; i++) {
+                        const key = `practica${i}`;
+                        if (studentGrades[key] !== undefined) {
+                            gradeToSave[key] = studentGrades[key];
+                        }
+                    }
+    
+                    for (let i = 1; i <= 2; i++) {
+                        const key = `parcial${i}`;
+                        if (studentGrades[key] !== undefined) {
+                            gradeToSave[key] = studentGrades[key];
+                        }
+                    }
+    
+                    gradesToSave.push(gradeToSave);
+                }
+            });
+    
+            if (gradesToSave.length === 0) {
+                toast.error('No hay cambios para guardar');
+                return;
+            }
+    
+            console.log("📤 ENVIANDO TODAS LAS NOTAS:", { notas: gradesToSave });
+            
+            // ✅ RUTA CORRECTA para guardado masivo
+            await gradesService.updateGradesBulk(selectedCourse, { notas: gradesToSave });
+            
+            toast.success(`✅ ${gradesToSave.length} estudiantes actualizados correctamente`);
             setHasChanges(false);
-            setEditableGrades({});
-            // Recargar datos
+            
+            // Recargar datos para ver cambios
             handleCourseSelect(selectedCourse);
+            
         } catch (error) {
-            console.error('Error al guardar notas:', error);
-            toast.error('Error al guardar las notas');
+            console.error('Error al guardar todas las notas:', error);
+            toast.error('❌ Error al guardar las notas');
         } finally {
             setLoading(false);
         }
+    };
+    // Funciones auxiliares (se mantienen igual)
+    const hasEvaluations = (grades) => {
+        return Array.from({length: 8}, (_, i) => grades[`evaluacion${i+1}`])
+            .some(val => val !== null && val !== undefined);
+    };
+
+    const hasPracticas = (grades) => {
+        return Array.from({length: 4}, (_, i) => grades[`practica${i+1}`])
+            .some(val => val !== null && val !== undefined);
+    };
+
+    const hasParciales = (grades) => {
+        return Array.from({length: 2}, (_, i) => grades[`parcial${i+1}`])
+            .some(val => val !== null && val !== undefined);
+    };
+
+    const extractEvaluations = (grades) => {
+        const result = {};
+        for (let i = 1; i <= 8; i++) {
+            result[`evaluacion${i}`] = grades[`evaluacion${i}`] || null;
+        }
+        return result;
+    };
+
+    const extractPracticas = (grades) => {
+        const result = {};
+        for (let i = 1; i <= 4; i++) {
+            result[`practica${i}`] = grades[`practica${i}`] || null;
+        }
+        return result;
+    };
+
+    const extractParciales = (grades) => {
+        const result = {};
+        for (let i = 1; i <= 2; i++) {
+            result[`parcial${i}`] = grades[`parcial${i}`] || null;
+        }
+        return result;
+    };
+
+    // 🔥 NUEVA FUNCIÓN: Obtener nombre del estudiante
+    const getStudentName = (studentId) => {
+        const student = students.find(s => s.id === studentId);
+        return student ? `${student.first_name} ${student.last_name}` : 'Estudiante';
+    };
+
+    const calculateStudentAverage = (studentId) => {
+        const studentGrades = editableGrades[studentId];
+        if (!studentGrades) return null;
+
+        const allGrades = [];
+        
+        for (let i = 1; i <= 8; i++) {
+            if (studentGrades[`evaluacion${i}`] > 0) {
+                allGrades.push(studentGrades[`evaluacion${i}`]);
+            }
+        }
+        
+        for (let i = 1; i <= 4; i++) {
+            if (studentGrades[`practica${i}`] > 0) {
+                allGrades.push(studentGrades[`practica${i}`]);
+            }
+        }
+        
+        for (let i = 1; i <= 2; i++) {
+            if (studentGrades[`parcial${i}`] > 0) {
+                allGrades.push(studentGrades[`parcial${i}`]);
+            }
+        }
+
+        if (allGrades.length === 0) return null;
+        
+        const sum = allGrades.reduce((acc, grade) => acc + grade, 0);
+        return (sum / allGrades.length).toFixed(2);
+    };
+
+    const getStudentStatus = (studentId) => {
+        const average = calculateStudentAverage(studentId);
+        if (!average) return 'SIN_NOTA';
+        return average >= 11 ? 'APROBADO' : 'DESAPROBADO';
+    };
+
+    const calculateCourseAverage = () => {
+        const averages = students.map(student => calculateStudentAverage(student.id))
+            .filter(avg => avg !== null)
+            .map(avg => parseFloat(avg));
+        
+        if (averages.length === 0) return null;
+        
+        const sum = averages.reduce((acc, avg) => acc + avg, 0);
+        return (sum / averages.length).toFixed(2);
     };
 
     const filteredStudents = students.filter(student => {
@@ -218,12 +357,28 @@ const Grades = () => {
                student.dni.includes(searchTerm);
     });
 
+    const renderGradeInput = (studentId, field, placeholder = "0.00") => {
+        return (
+            <input
+                type="number"
+                min="0"
+                max="20"
+                step="0.01"
+                className="w-16 px-2 py-1 border rounded-md text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={editableGrades[studentId]?.[field] || ''}
+                onChange={(e) => handleGradeChange(studentId, field, e.target.value)}
+                placeholder={placeholder}
+            />
+        );
+    };
+
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <FileText className="mr-2" /> Calificaciones
+                <FileText className="mr-2" /> Sistema de Calificaciones
             </h1>
             
+            {/* Selección de Curso */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-700 mb-4">Seleccione un curso</h2>
                 
@@ -245,7 +400,7 @@ const Grades = () => {
                                 }`}
                             >
                                 <h3 className="font-medium text-gray-800">{course.nombre}</h3>
-                                <p className="text-sm text-gray-500">Código: {course.codigo}</p>
+                                <p className="text-sm text-gray-500">Ciclo: {course.ciclo_nombre}</p>
                                 <div className="flex items-center mt-2">
                                     <Users size={14} className="text-gray-400 mr-1" />
                                     <span className="text-xs text-gray-500">{course.total_estudiantes || 0} estudiantes</span>
@@ -256,104 +411,59 @@ const Grades = () => {
                 )}
             </div>
             
+            {/* Gestión de Notas */}
             {selectedCourse && (
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                        <h2 className="text-lg font-semibold text-gray-700 mb-4 md:mb-0">
-                            Calificaciones - {courses.find(c => c.id === selectedCourse)?.nombre}
-                        </h2>
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-700">
+                                Calificaciones - {courses.find(c => c.id === selectedCourse)?.nombre}
+                            </h2>
+                            {calculateCourseAverage() && (
+                                <p className="text-sm text-gray-500">
+                                    Promedio del curso: <span className="font-semibold">{calculateCourseAverage()}</span>
+                                </p>
+                            )}
+                        </div>
                         
-                        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-4 md:mt-0">
                             {hasChanges && (
                                 <button
                                     onClick={handleSaveAllGrades}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                                    disabled={loading}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50"
                                 >
-                                    <Save size={16} className="mr-1" /> Guardar Todas las Notas
+                                    <Save size={16} className="mr-1" /> 
+                                    {loading ? 'Guardando...' : 'Guardar Todas las Notas'}
                                 </button>
                             )}
-                            <button
-                                onClick={() => setShowAddGradeForm(!showAddGradeForm)}
-                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
-                            >
-                                <Plus size={16} className="mr-1" /> {showAddGradeForm ? 'Cancelar' : 'Agregar Calificación'}
-                            </button>
                         </div>
                     </div>
                     
-                    {showAddGradeForm && (
-                        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                            <h3 className="font-medium text-gray-700 mb-3">Nueva Calificación</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Estudiante *
-                                    </label>
-                                    <select
-                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={newGradeData.estudiante_id}
-                                        onChange={(e) => setNewGradeData({...newGradeData, estudiante_id: e.target.value})}
-                                        required
+                    {/* Pestañas de tipos de evaluación */}
+                    <div className="mb-6">
+                        <div className="border-b border-gray-200">
+                            <nav className="-mb-px flex space-x-8">
+                                {['evaluaciones', 'practicas', 'parciales'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                            activeTab === tab
+                                                ? 'border-blue-500 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                     >
-                                        <option value="">Seleccione un estudiante</option>
-                                        {students.map((student) => (
-                                            <option key={student.id} value={student.id}>
-                                                {student.first_name} {student.last_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Calificación (0-20) *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="20"
-                                        step="0.01"
-                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={newGradeData.valor}
-                                        onChange={(e) => setNewGradeData({...newGradeData, valor: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Fecha
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={newGradeData.fecha}
-                                        onChange={(e) => setNewGradeData({...newGradeData, fecha: e.target.value})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Descripción
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={newGradeData.descripcion}
-                                        onChange={(e) => setNewGradeData({...newGradeData, descripcion: e.target.value})}
-                                        placeholder="Ej: Examen parcial"
-                                    />
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                                <button
-                                    onClick={handleAddGrade}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-                                    disabled={loading}
-                                >
-                                    {loading ? 'Guardando...' : 'Guardar Calificación'}
-                                </button>
-                            </div>
+                                        {tab === 'evaluaciones' && 'Evaluaciones (1-8)'}
+                                        {tab === 'practicas' && 'Prácticas (1-4)'}
+                                        {tab === 'parciales' && 'Parciales (1-2)'}
+                                    </button>
+                                ))}
+                            </nav>
                         </div>
-                    )}
+                    </div>
                     
+                    {/* Búsqueda */}
                     <div className="mb-4">
                         <div className="relative">
                             <input
@@ -384,112 +494,133 @@ const Grades = () => {
                                     <tr>
                                         <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Estudiante</th>
                                         <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">DNI</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 1</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 2</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 3</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota 4</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nota Final</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Promedio</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Acciones</th>
+                                        
+                                        {/* Campos dinámicos según la pestaña activa */}
+                                        {activeTab === 'evaluaciones' && (
+                                            <>
+                                                {Array.from({length: 8}, (_, i) => (
+                                                    <th key={i} className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                                        Eval {i+1}
+                                                    </th>
+                                                ))}
+                                            </>
+                                        )}
+                                        
+                                        {activeTab === 'practicas' && (
+                                            <>
+                                                {Array.from({length: 4}, (_, i) => (
+                                                    <th key={i} className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                                        Pract {i+1}
+                                                    </th>
+                                                ))}
+                                            </>
+                                        )}
+                                        
+                                        {activeTab === 'parciales' && (
+                                            <>
+                                                {Array.from({length: 2}, (_, i) => (
+                                                    <th key={i} className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                                        Parc {i+1}
+                                                    </th>
+                                                ))}
+                                            </>
+                                        )}
+                                        
+                                        <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Promedio</th>
+                                        <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Estado</th>
+                                        <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {filteredStudents.map((student) => (
-                                        <tr key={student.id} className="hover:bg-gray-50">
-                                            <td className="py-3 px-4">
-                                                <div>
-                                                    <p className="font-medium text-gray-800">{student.first_name} {student.last_name}</p>
-                                                    <p className="text-xs text-gray-500">{student.email}</p>
-                                                </div>
-                                            </td>
-                                            <td className="py-3 px-4 text-sm text-gray-700">{student.dni}</td>
-                                            <td className="py-3 px-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="20"
-                                                    step="0.01"
-                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
-                                                    value={editableGrades[student.id]?.nota1 || student.nota1 || ''}
-                                                    onChange={(e) => handleGradeChange(student.id, 'nota1', e.target.value)}
-                                                    placeholder="0.00"
-                                                />
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="20"
-                                                    step="0.01"
-                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
-                                                    value={editableGrades[student.id]?.nota2 || student.nota2 || ''}
-                                                    onChange={(e) => handleGradeChange(student.id, 'nota2', e.target.value)}
-                                                    placeholder="0.00"
-                                                />
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="20"
-                                                    step="0.01"
-                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
-                                                    value={editableGrades[student.id]?.nota3 || student.nota3 || ''}
-                                                    onChange={(e) => handleGradeChange(student.id, 'nota3', e.target.value)}
-                                                    placeholder="0.00"
-                                                />
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="20"
-                                                    step="0.01"
-                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
-                                                    value={editableGrades[student.id]?.nota4 || student.nota4 || ''}
-                                                    onChange={(e) => handleGradeChange(student.id, 'nota4', e.target.value)}
-                                                    placeholder="0.00"
-                                                />
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="20"
-                                                    step="0.01"
-                                                    className="w-16 px-2 py-1 border rounded-md text-sm"
-                                                    value={editableGrades[student.id]?.nota_final || student.nota_final || ''}
-                                                    onChange={(e) => handleGradeChange(student.id, 'nota_final', e.target.value)}
-                                                    placeholder="0.00"
-                                                />
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className={`inline-block py-1 px-3 rounded-full text-sm font-medium ${
-                                                    calculateAverage(student.id) >= 10.5 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : calculateAverage(student.id) === '-'
-                                                            ? 'bg-gray-100 text-gray-800'
-                                                            : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {calculateAverage(student.id)}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <button
-                                                    onClick={() => {
-                                                        setNewGradeData({
-                                                            ...newGradeData,
-                                                            estudiante_id: student.id
-                                                        });
-                                                        setShowAddGradeForm(true);
-                                                    }}
-                                                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 text-sm flex items-center"
-                                                >
-                                                    <Plus size={14} className="mr-1" /> Agregar nota
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {filteredStudents.map((student) => {
+                                        const average = calculateStudentAverage(student.id);
+                                        const status = getStudentStatus(student.id);
+                                        const hasStudentChanges = hasUnsavedChanges(student.id);
+                                        const isSaving = savingRows[student.id];
+                                        
+                                        return (
+                                            <tr key={student.id} className="hover:bg-gray-50">
+                                                <td className="py-3 px-4">
+                                                    <div>
+                                                        <p className="font-medium text-gray-800">{student.first_name} {student.last_name}</p>
+                                                        <p className="text-xs text-gray-500">{student.email}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-gray-700">{student.dni}</td>
+                                                
+                                                {/* Campos de nota según pestaña activa */}
+                                                {activeTab === 'evaluaciones' && (
+                                                    <>
+                                                        {Array.from({length: 8}, (_, i) => (
+                                                            <td key={i} className="py-3 px-4 text-center">
+                                                                {renderGradeInput(student.id, `evaluacion${i+1}`)}
+                                                            </td>
+                                                        ))}
+                                                    </>
+                                                )}
+                                                
+                                                {activeTab === 'practicas' && (
+                                                    <>
+                                                        {Array.from({length: 4}, (_, i) => (
+                                                            <td key={i} className="py-3 px-4 text-center">
+                                                                {renderGradeInput(student.id, `practica${i+1}`)}
+                                                            </td>
+                                                        ))}
+                                                    </>
+                                                )}
+                                                
+                                                {activeTab === 'parciales' && (
+                                                    <>
+                                                        {Array.from({length: 2}, (_, i) => (
+                                                            <td key={i} className="py-3 px-4 text-center">
+                                                                {renderGradeInput(student.id, `parcial${i+1}`)}
+                                                            </td>
+                                                        ))}
+                                                    </>
+                                                )}
+                                                
+                                                <td className="py-3 px-4 text-center">
+                                                    <span className={`inline-block py-1 px-3 rounded-full text-sm font-medium ${
+                                                        !average ? 'bg-gray-100 text-gray-800' :
+                                                        average >= 11 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {average || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-center">
+                                                    <span className={`inline-block py-1 px-3 rounded-full text-xs font-medium ${
+                                                        status === 'SIN_NOTA' ? 'bg-gray-100 text-gray-800' :
+                                                        status === 'APROBADO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {status}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-center">
+                                                    <button
+                                                        onClick={() => handleSaveStudentGrades(student.id)}
+                                                        disabled={!hasStudentChanges || isSaving}
+                                                        className={`px-3 py-1 rounded-md text-sm flex items-center ${
+                                                            hasStudentChanges 
+                                                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        {isSaving ? (
+                                                            <>
+                                                                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500 mr-1"></div>
+                                                                Guardando...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Check size={14} className="mr-1" />
+                                                                Guardar
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
