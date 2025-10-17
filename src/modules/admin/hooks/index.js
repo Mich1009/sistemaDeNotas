@@ -5,3 +5,4 @@ export { useDocentes } from './useDocentes';
 export { useCursos } from './useCursos';
 export { useNotas } from './useNotas';
 export { useReportes } from './useReportes';
+export { useSistema } from './useSistema';
