@@ -221,13 +221,6 @@ export const reportesService = {
         return response.data;
     },
 
-    exportarCursosExcel: async () => {
-        const response = await api.get('/admin/reportes/exportar/cursos', {
-            responseType: 'blob'
-        });
-        return response.data;
-    },
-
     exportarNotasExcel: async (params = {}) => {
         const response = await api.get('/admin/reportes/exportar/notas', { 
             params,
