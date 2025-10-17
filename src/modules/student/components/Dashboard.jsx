@@ -70,8 +70,15 @@ const EstudianteDashboard = () => {
   );
 
   const CourseCard = ({ course }) => {
+    // Buscar la nota por nombre del curso
     const grade = dashboardData.notas_recientes.find(g => g.curso_nombre === course.nombre);
-    const hasGrades = grade && (grade.nota_1 || grade.nota_2 || grade.nota_3 || grade.nota_4);
+    
+    // Verificar si tiene notas usando los campos reales
+    const hasGrades = grade && (
+      grade.evaluacion1 || grade.evaluacion2 || grade.evaluacion3 || grade.evaluacion4 ||
+      grade.practica1 || grade.practica2 || grade.practica3 || grade.practica4 ||
+      grade.parcial1 || grade.parcial2 || grade.promedio_final
+    );
     
     return (
       <Link to={`/estudiante/courses/${course.id}`} className="block">
@@ -91,10 +98,10 @@ const EstudianteDashboard = () => {
                     <Calendar className="w-4 h-4 mr-1" />
                     {course.ciclo_nombre}
                   </div>
-                  {grade?.promedio && (
+                  {grade?.promedio_final && (
                     <div className="flex items-center">
                       <Award className="w-4 h-4 mr-1" />
-                      Promedio: {grade.promedio}
+                      Promedio: {grade.promedio_final}
                     </div>
                   )}
                 </div>
@@ -140,7 +147,7 @@ const EstudianteDashboard = () => {
       </div>
       <div className="text-right">
         <div className="text-lg font-bold text-primary-600">
-          {grade.promedio || '--'}
+          {grade.promedio_final || '--'}
         </div>
         <div className="text-xs text-secondary-500">
           Promedio Final
@@ -148,7 +155,6 @@ const EstudianteDashboard = () => {
       </div>
     </div>
   );
-
   const getGradeStatus = (average) => {
     if (average >= 16) return 'good';
     if (average >= 13) return 'warning';
