@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDocentes } from '../hooks';
-import DocenteModal from './DocenteModal';
-import ViewCursos from './ViewCursos';
+import DocenteModal from '../components/DocenteModal';
+import ViewCursos from '../components/ViewCursos';
 
 const Docentes = () => {
     const { 

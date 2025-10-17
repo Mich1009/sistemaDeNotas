@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { 
-    FileText, 
-    Download, 
-    BarChart3, 
-    TrendingUp, 
-    Users, 
+import React, { useState, useEffect } from 'react';
+import {
+    FileText,
+    Download,
+    BarChart3,
+    TrendingUp,
+    Users,
     BookOpen,
     GraduationCap,
-    Calendar,
     Filter,
-    RefreshCw
+    RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useReportes } from '../hooks';
+import Estadistica from './Estadistica';
 
 const Reports = () => {
-    const { 
+    const {
         estadisticasGenerales,
         rendimientoEstudiantes,
         rendimientoCursos,
-        loading, 
-        error, 
+        loading,
+        error,
         getEstadisticasGenerales,
         getRendimientoEstudiantes,
         getRendimientoCursos,
@@ -38,61 +38,30 @@ const Reports = () => {
 
     const handleExport = async (type) => {
         try {
-            let blob;
-            let filename;
-            
+            let success = false;
+
             switch (type) {
                 case 'estudiantes':
-                    blob = await exportarEstudiantes();
-                    filename = 'estudiantes.xlsx';
+                    success = await exportarEstudiantes();
                     break;
                 case 'docentes':
-                    blob = await exportarDocentes();
-                    filename = 'docentes.xlsx';
+                    success = await exportarDocentes();
                     break;
                 case 'notas':
-                    blob = await exportarNotas();
-                    filename = 'notas.xlsx';
+                    success = await exportarNotas();
                     break;
                 default:
                     throw new Error('Tipo de exportación no válido');
             }
 
-            // Create download link
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            
-            toast.success(`${type} exportado exitosamente`);
+            if (success) {
+                toast.success(`${type} exportado exitosamente`);
+            }
         } catch (error) {
-            toast.error(`Error al exportar ${type}`);
+            console.error('Error en exportación:', error);
+            toast.error(`Error al exportar ${type}: ${error.message || 'Error desconocido'}`);
         }
     };
-
-    const StatCard = ({ title, value, icon: Icon, color, change }) => (
-        <div className="card p-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium text-secondary-600">{title}</p>
-                    <p className="text-2xl font-bold text-secondary-900">{value}</p>
-                    {change && (
-                        <p className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {change >= 0 ? '+' : ''}{change}% vs mes anterior
-                        </p>
-                    )}
-                </div>
-                <div className={`w-12 h-12 ${color} rounded-full flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                </div>
-            </div>
-        </div>
-    );
 
     const ExportCard = ({ title, description, icon: Icon, color, onExport, type }) => (
         <div className="card p-6">
@@ -145,7 +114,7 @@ const Reports = () => {
                             <tr key={index}>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm font-medium text-secondary-900">
-                                        {type === 'estudiantes' 
+                                        {type === 'estudiantes'
                                             ? `${item.nombres} ${item.apellidos}`
                                             : item.nombre
                                         }
@@ -157,22 +126,20 @@ const Reports = () => {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                        item.promedio >= 14 
-                                            ? 'bg-green-100 text-green-800'
-                                            : item.promedio >= 11
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.promedio >= 14
+                                        ? 'bg-green-100 text-green-800'
+                                        : item.promedio >= 11
                                             ? 'bg-yellow-100 text-yellow-800'
                                             : 'bg-red-100 text-red-800'
-                                    }`}>
+                                        }`}>
                                         {item.promedio?.toFixed(2) || 'N/A'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                        item.promedio >= 11 
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
-                                    }`}>
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.promedio >= 11
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                        }`}>
                                         {item.promedio >= 11 ? 'Aprobado' : 'Desaprobado'}
                                     </span>
                                 </td>
@@ -198,7 +165,7 @@ const Reports = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-3 pb-10">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -218,65 +185,30 @@ const Reports = () => {
 
             {/* Tabs */}
             <div className="card">
-                <div className="border-b border-secondary-200">
-                    <nav className="flex space-x-8 px-6">
-                        {[
-                            { key: 'estadisticas', label: 'Estadísticas', icon: BarChart3 },
-                            { key: 'rendimiento', label: 'Rendimiento', icon: TrendingUp },
-                            { key: 'exportar', label: 'Exportar Datos', icon: Download }
-                        ].map(({ key, label, icon: Icon }) => (
-                            <button
-                                key={key}
-                                onClick={() => setActiveTab(key)}
-                                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === key
-                                        ? 'border-primary-500 text-primary-600'
-                                        : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
+                <nav className="flex space-x-8 px-6">
+                    {[
+                        { key: 'estadisticas', label: 'Estadísticas', icon: BarChart3 },
+                        { key: 'rendimiento', label: 'Rendimiento Académico', icon: TrendingUp },
+                        { key: 'exportar', label: 'Exportar Datos', icon: Download }
+                    ].map(({ key, label, icon: Icon }) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${activeTab === key
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
                                 }`}
-                            >
-                                <Icon className="w-4 h-4" />
-                                <span>{label}</span>
-                            </button>
-                        ))}
-                    </nav>
-                </div>
+                        >
+                            <Icon className="w-4 h-4" />
+                            <span>{label}</span>
+                        </button>
+                    ))}
+                </nav>
             </div>
 
             {/* Content based on active tab */}
             {activeTab === 'estadisticas' && (
-                <div className="space-y-6">
-                    {/* General Statistics */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <StatCard
-                            title="Total Estudiantes"
-                            value={estadisticasGenerales?.total_estudiantes || 0}
-                            icon={Users}
-                            color="bg-blue-500"
-                            change={estadisticasGenerales?.cambio_estudiantes}
-                        />
-                        <StatCard
-                            title="Total Docentes"
-                            value={estadisticasGenerales?.total_docentes || 0}
-                            icon={GraduationCap}
-                            color="bg-green-500"
-                            change={estadisticasGenerales?.cambio_docentes}
-                        />
-                        <StatCard
-                            title="Total Cursos"
-                            value={estadisticasGenerales?.total_cursos || 0}
-                            icon={BookOpen}
-                            color="bg-purple-500"
-                            change={estadisticasGenerales?.cambio_cursos}
-                        />
-                        <StatCard
-                            title="Promedio General"
-                            value={estadisticasGenerales?.promedio_general?.toFixed(2) || '0.00'}
-                            icon={BarChart3}
-                            color="bg-orange-500"
-                            change={estadisticasGenerales?.cambio_promedio}
-                        />
-                    </div>
-                </div>
+                <Estadistica />
             )}
 
             {activeTab === 'rendimiento' && (

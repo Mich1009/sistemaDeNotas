@@ -9,17 +9,19 @@ import {
     Home,
     Calendar,
     Award,
-    User
+    User,
+    HeartPulse,
 } from 'lucide-react';
 
 // Importar componentes de Admin
-import AdminDashboard from '../../modules/admin/components/Dashboard';
-import Docentes from '../../modules/admin/components/Docentes';
-import Courses from '../../modules/admin/components/Course';
-import Students from '../../modules/admin/components/Students';
-import AdminReports from '../../modules/admin/components/Reports';
-import Matriculas from '../../modules/admin/components/Matriculas';
-import Configuracion from '../../modules/admin/components/Configuracion';
+import AdminDashboard from '../../modules/admin/views/Dashboard.jsx';
+import Docentes from '../../modules/admin/views/Docentes.jsx';
+import Courses from '../../modules/admin/views/Course.jsx';
+import Students from '../../modules/admin/views/Students.jsx';
+import Matriculas from '../../modules/admin/views/Matriculas';
+import AdminReports from '../../modules/admin/views/Reports.jsx';
+import Sistema from '../../modules/admin/views/Sistema.jsx'
+import Configuracion from '../../modules/admin/views/Configuracion.jsx';
 
 // Importar componentes de Teacher
 import TeacherDashboard from '../../modules/teacher/components/Dashboard';
@@ -72,6 +74,12 @@ export const menuConfigs = {
             label: 'Reportes',
             icon: FileText,
             component: AdminReports
+        },
+        {
+            id: 'systema',
+            label: 'Sistema',
+            icon: HeartPulse,
+            component: Sistema,
         },
         {
             id: 'settings',
