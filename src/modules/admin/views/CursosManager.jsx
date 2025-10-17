@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCursos } from '../hooks';
-import CursoModal from './CursoModal';
+import CursoModal from '../components/CursoModal';
 
 const CursosManager = () => {
     const {

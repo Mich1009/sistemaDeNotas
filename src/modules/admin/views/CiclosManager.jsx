@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCursos } from '../hooks';
-import CicloModal from './CicloModal';
+import CicloModal from '../components/CicloModal';
 
 const CiclosManager = () => {
     const {

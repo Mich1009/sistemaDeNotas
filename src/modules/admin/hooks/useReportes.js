@@ -1,15 +1,22 @@
-import { useState } from 'react';
-import { reportesService } from '../services/apiAdmin';
+import { useState, useEffect } from 'react';
+import { reportesService, dashboardService } from '../services/apiAdmin';
 
 export const useReportes = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    
+    // Estados para los datos
+    const [estadisticasGenerales, setEstadisticasGenerales] = useState(null);
+    const [rendimientoEstudiantes, setRendimientoEstudiantes] = useState([]);
+    const [rendimientoCursos, setRendimientoCursos] = useState([]);
 
     const getEstadisticasGenerales = async () => {
         try {
             setLoading(true);
             setError(null);
-            return await reportesService.getEstadisticasGenerales();
+            const data = await dashboardService.getEstadisticasGenerales();
+            setEstadisticasGenerales(data);
+            return data;
         } catch (err) {
             setError(err.message || 'Error al obtener estadísticas generales');
             throw err;
@@ -22,7 +29,9 @@ export const useReportes = () => {
         try {
             setLoading(true);
             setError(null);
-            return await reportesService.getRendimientoEstudiantes(params);
+            const data = await reportesService.getRendimientoEstudiantes(params);
+            setRendimientoEstudiantes(data.datos_estudiantes || []);
+            return data;
         } catch (err) {
             setError(err.message || 'Error al obtener rendimiento de estudiantes');
             throw err;
@@ -31,11 +40,13 @@ export const useReportes = () => {
         }
     };
 
-    const getRendimientoPorCurso = async (params = {}) => {
+    const getRendimientoCursos = async (params = {}) => {
         try {
             setLoading(true);
             setError(null);
-            return await reportesService.getRendimientoPorCurso(params);
+            const data = await reportesService.getRendimientoPorCurso(params);
+            setRendimientoCursos(data.cursos || []);
+            return data;
         } catch (err) {
             setError(err.message || 'Error al obtener rendimiento por curso');
             throw err;
@@ -44,11 +55,11 @@ export const useReportes = () => {
         }
     };
 
-    const exportarEstudiantesExcel = async () => {
+    const exportarEstudiantes = async (params = {}) => {
         try {
             setLoading(true);
             setError(null);
-            const blob = await reportesService.exportarEstudiantesExcel();
+            const blob = await reportesService.exportarEstudiantesExcel(params);
 
             // Create download link
             const url = window.URL.createObjectURL(blob);
@@ -69,7 +80,7 @@ export const useReportes = () => {
         }
     };
 
-    const exportarDocentesExcel = async () => {
+    const exportarDocentes = async () => {
         try {
             setLoading(true);
             setError(null);
@@ -94,7 +105,7 @@ export const useReportes = () => {
         }
     };
 
-    const exportarNotasExcel = async (params = {}) => {
+    const exportarNotas = async (params = {}) => {
         try {
             setLoading(true);
             setError(null);
@@ -119,14 +130,35 @@ export const useReportes = () => {
         }
     };
 
+    const refreshReportes = async () => {
+        try {
+            await Promise.all([
+                getEstadisticasGenerales(),
+                getRendimientoEstudiantes(),
+                getRendimientoCursos()
+            ]);
+        } catch (err) {
+            setError('Error al actualizar reportes');
+        }
+    };
+
+    // Cargar datos iniciales
+    useEffect(() => {
+        refreshReportes();
+    }, []);
+
     return {
         loading,
         error,
+        estadisticasGenerales,
+        rendimientoEstudiantes,
+        rendimientoCursos,
         getEstadisticasGenerales,
         getRendimientoEstudiantes,
-        getRendimientoPorCurso,
-        exportarEstudiantesExcel,
-        exportarDocentesExcel,
-        exportarNotasExcel
+        getRendimientoCursos,
+        exportarEstudiantes,
+        exportarDocentes,
+        exportarNotas,
+        refreshReportes
     };
 };

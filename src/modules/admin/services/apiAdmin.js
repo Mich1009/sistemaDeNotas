@@ -200,6 +200,12 @@ export const reportesService = {
         return response.data;
     },
 
+    getEstudiantesPorCiclo: async (año = null) => {
+        const params = año ? { año } : {};
+        const response = await api.get('/admin/reportes/estudiantes-por-ciclo', { params });
+        return response.data;
+    },
+
     exportarEstudiantesExcel: async (params = {}) => {
         const response = await api.get('/admin/reportes/exportar/estudiantes', { 
             params,
@@ -228,6 +234,38 @@ export const reportesService = {
             responseType: 'blob'
         });
         return response.data;
+    }
+};
+
+// Servicios de rendmiento de sistema
+export const sistemaService = {
+    getSystemHealth: async () => {
+        const response = await api.get('/admin/performance/system-health');
+        return response.data;
+    },
+
+    getPerformanceMetrics: async () => {
+        const response = await api.get('/admin/performance/performance-metrics');
+        return response.data;
+    },
+
+    getActivityTimeline: async (days = 7) => {
+        const response = await api.get(`/admin/performance/activity-timeline?days=${days}`);
+        return response.data;
+    },
+
+    getAllMetrics: async () => {
+        const [systemHealth, performanceMetrics, activityTimeline] = await Promise.all([
+            sistemaService.getSystemHealth(),
+            sistemaService.getPerformanceMetrics(),
+            sistemaService.getActivityTimeline()
+        ]);
+
+        return {
+            systemHealth,
+            performanceMetrics,
+            activityTimeline
+        };
     }
 };
 

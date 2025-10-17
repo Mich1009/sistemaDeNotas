@@ -9,7 +9,7 @@ import {
 import toast from 'react-hot-toast';
 import { useEstudiantes } from '../hooks';
 import { useCiclos } from '../hooks/useCiclos';
-import EstudianteModal from './EstudianteModal';
+import EstudianteModal from '../components/EstudianteModal';
 
 const Students = () => {
     const {
