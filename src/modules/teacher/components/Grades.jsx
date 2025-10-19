@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Users, FileText, Edit, Save, Plus, Trash2, Search, Filter, AlertCircle, Calculator, Check } from 'lucide-react';
-import { getCourses, getStudentsWithGrades, academicService, gradesService } from '../services/apiTeacher';
+import { getCourses, getStudentsWithGrades, academicService, gradesService, configService } from '../services/apiTeacher';
 import useAuthStore from '../../../modules/auth/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -13,13 +13,40 @@ const Grades = () => {
     const [editableGrades, setEditableGrades] = useState({});
     const [hasChanges, setHasChanges] = useState(false);
     const [activeTab, setActiveTab] = useState('evaluaciones');
+    // Selector de mes para promedios (0-11)
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [savingRows, setSavingRows] = useState({}); // Track which rows are being saved
-
+    // Tabs por ciclos: impares al inicio del año, pares a mitad de año
+    const getDefaultCycleTab = () => (new Date().getMonth() + 1 <= 6 ? 'impares' : 'pares');
+    const [cycleTab, setCycleTab] = useState(getDefaultCycleTab());
+    // Pesos de promedios (se cargan del backend; fallback igualitario)
+    const [gradeWeights, setGradeWeights] = useState({ evaluaciones: 0.33, practicas: 0.33, parciales: 0.34 });
+    const lastSelectedCourseRef = useRef(null);
     const user = useAuthStore(state => state.user);
 
     useEffect(() => {
         fetchCourses();
     }, []);
+
+    // Cargar pesos de cálculo de promedios desde backend cuando cambia el curso
+    useEffect(() => {
+        if (!selectedCourse) return;
+        (async () => {
+            try {
+                const cfg = await configService.getGradeCalculationConfig(selectedCourse);
+                const w = (cfg && (cfg.weights || cfg)) || {};
+                const num = (x, def) => (typeof x === 'number' && !isNaN(x) ? x : def);
+                setGradeWeights({
+                    evaluaciones: num(w.evaluaciones, 0.33),
+                    practicas: num(w.practicas, 0.33),
+                    parciales: num(w.parciales, 0.34)
+                });
+            } catch (e) {
+                // Mantener valores por defecto si falla
+                setGradeWeights({ evaluaciones: 0.33, practicas: 0.33, parciales: 0.34 });
+            }
+        })();
+    }, [selectedCourse]);
 
     const fetchCourses = async () => {
         setLoading(true);
@@ -36,14 +63,29 @@ const Grades = () => {
 
     const handleCourseSelect = async (courseId) => {
         setSelectedCourse(courseId);
+        lastSelectedCourseRef.current = courseId;
+        setStudents([]);
+        setEditableGrades({});
         setLoading(true);
         try {
             const response = await getStudentsWithGrades(courseId);
-            console.log("📘 Estudiantes con notas:", response.data);
-            setStudents(response.data || []);
-            
+            if (lastSelectedCourseRef.current !== courseId) {
+                // Se cambió de curso antes de terminar este fetch; ignorar
+                return;
+            }
+            let list = response.data || [];
+            // Filtro defensivo: asegurar que solo estudiantes del curso seleccionado aparezcan
+            list = list.filter(s => {
+                if (s.curso_id && s.curso_id === courseId) return true;
+                if (Array.isArray(s.notas)) {
+                    return s.notas.some(n => n.curso_id === courseId);
+                }
+                return true; // Si no hay metadatos, asumir correcto
+            });
+            console.log("📘 Estudiantes con notas:", list);
+            setStudents(list);
             const initialEditable = {};
-            response.data.forEach(student => {
+            list.forEach(student => {
                 if (student.notas && student.notas.length > 0) {
                     student.notas.forEach(nota => {
                         if (!initialEditable[student.id]) {
@@ -305,39 +347,24 @@ const Grades = () => {
     };
 
     const calculateStudentAverage = (studentId) => {
-        const studentGrades = editableGrades[studentId];
-        if (!studentGrades) return null;
+        const g = editableGrades[studentId];
+        if (!g) return null;
 
-        const allGrades = [];
-        
-        for (let i = 1; i <= 8; i++) {
-            if (studentGrades[`evaluacion${i}`] > 0) {
-                allGrades.push(studentGrades[`evaluacion${i}`]);
-            }
-        }
-        
-        for (let i = 1; i <= 4; i++) {
-            if (studentGrades[`practica${i}`] > 0) {
-                allGrades.push(studentGrades[`practica${i}`]);
-            }
-        }
-        
-        for (let i = 1; i <= 2; i++) {
-            if (studentGrades[`parcial${i}`] > 0) {
-                allGrades.push(studentGrades[`parcial${i}`]);
-            }
-        }
+        const allVals = [
+            ...Array.from({ length: 8 }, (_, i) => g[`evaluacion${i+1}`] ?? null),
+            ...Array.from({ length: 4 }, (_, i) => g[`practica${i+1}`] ?? null),
+            ...Array.from({ length: 2 }, (_, i) => g[`parcial${i+1}`] ?? null)
+        ].filter(v => v !== null && v !== undefined && v > 0);
 
-        if (allGrades.length === 0) return null;
-        
-        const sum = allGrades.reduce((acc, grade) => acc + grade, 0);
-        return (sum / allGrades.length).toFixed(2);
+        if (!allVals.length) return null;
+        const sum = allVals.reduce((acc, v) => acc + v, 0);
+        return (sum / allVals.length).toFixed(2);
     };
 
     const getStudentStatus = (studentId) => {
         const average = calculateStudentAverage(studentId);
         if (!average) return 'SIN_NOTA';
-        return average >= 11 ? 'APROBADO' : 'DESAPROBADO';
+        return parseFloat(average) >= 10.5 ? 'APROBADO' : 'DESAPROBADO';
     };
 
     const calculateCourseAverage = () => {
@@ -372,6 +399,22 @@ const Grades = () => {
         );
     };
 
+    // Conversión de números romanos del ciclo a entero para separar por ciclos
+    const romanToInt = (roman) => {
+        if (!roman) return 0;
+        const map = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6 };
+        const key = String(roman).trim().toUpperCase();
+        return map[key] || 0;
+    };
+
+    const visibleCourses = React.useMemo(() => {
+        if (!courses || !courses.length) return [];
+        if (cycleTab === 'impares') {
+            return courses.filter(c => romanToInt(c.ciclo_nombre) % 2 === 1);
+        }
+        return courses.filter(c => romanToInt(c.ciclo_nombre) % 2 === 0);
+    }, [courses, cycleTab]);
+
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
@@ -380,7 +423,24 @@ const Grades = () => {
             
             {/* Selección de Curso */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-lg font-semibold text-gray-700 mb-4">Seleccione un curso</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-700">Seleccione un curso</h2>
+                    {/* Pestañas de ciclo: Impares vs Pares */}
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => setCycleTab('impares')}
+                            className={`px-3 py-1 rounded-md text-sm border ${cycleTab === 'impares' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                        >
+                            Ciclos Impares
+                        </button>
+                        <button
+                            onClick={() => setCycleTab('pares')}
+                            className={`px-3 py-1 rounded-md text-sm border ${cycleTab === 'pares' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                        >
+                            Ciclos Pares
+                        </button>
+                    </div>
+                </div>
                 
                 {loading && !selectedCourse ? (
                     <div className="text-center py-10">
@@ -389,7 +449,7 @@ const Grades = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {courses.map((course) => (
+                        {visibleCourses.map((course) => (
                             <button
                                 key={course.id}
                                 onClick={() => handleCourseSelect(course.id)}
@@ -400,7 +460,7 @@ const Grades = () => {
                                 }`}
                             >
                                 <h3 className="font-medium text-gray-800">{course.nombre}</h3>
-                                <p className="text-sm text-gray-500">Ciclo: {course.ciclo_nombre}</p>
+                                <p className="text-sm text-gray-500">Ciclo: {course.ciclo_nombre} {course.ciclo_año ? `(${course.ciclo_año})` : ''}</p>
                                 <div className="flex items-center mt-2">
                                     <Users size={14} className="text-gray-400 mr-1" />
                                     <span className="text-xs text-gray-500">{course.total_estudiantes || 0} estudiantes</span>
@@ -444,7 +504,7 @@ const Grades = () => {
                     <div className="mb-6">
                         <div className="border-b border-gray-200">
                             <nav className="-mb-px flex space-x-8">
-                                {['evaluaciones', 'practicas', 'parciales'].map((tab) => (
+                                {['evaluaciones', 'practicas', 'parciales', 'promedios'].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -457,11 +517,32 @@ const Grades = () => {
                                         {tab === 'evaluaciones' && 'Evaluaciones (1-8)'}
                                         {tab === 'practicas' && 'Prácticas (1-4)'}
                                         {tab === 'parciales' && 'Parciales (1-2)'}
+                                        {tab === 'promedios' && 'Promedios (con peso)'}
                                     </button>
                                 ))}
                             </nav>
                         </div>
                     </div>
+
+                    {/* Selector de mes para promedios */}
+                    {false && activeTab === 'promedios' && (
+                        <div className="mb-4 flex items-center space-x-3">
+                            <label className="text-sm text-gray-600">Mes:</label>
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                className="px-2 py-1 border rounded-md text-sm"
+                            >
+                                {[
+                                    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+                                ].map((m, idx) => (
+                                    <option value={idx} key={m}>{m}</option>
+                                ))}
+                            </select>
+                            <span className="text-xs text-gray-500">Promedios ponderados según configuración del curso.</span>
+                        </div>
+                    )}
                     
                     {/* Búsqueda */}
                     <div className="mb-4">
@@ -525,10 +606,21 @@ const Grades = () => {
                                                 ))}
                                             </>
                                         )}
+
+                                        {activeTab === 'promedios' && (
+                                            <>
+                                                <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Prom Eval (× peso)</th>
+                                                <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Prom Práct (× peso)</th>
+                                                <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Prom Parc (× peso)</th>
+                                                <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Final (ponderado)</th>
+                                            </>
+                                        )}
                                         
-                                        <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Promedio</th>
+                                        <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Promedio Final</th>
                                         <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Estado</th>
-                                        <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Acciones</th>
+                                        {activeTab !== 'promedios' && (
+                                            <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">Acciones</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -537,6 +629,34 @@ const Grades = () => {
                                         const status = getStudentStatus(student.id);
                                         const hasStudentChanges = hasUnsavedChanges(student.id);
                                         const isSaving = savingRows[student.id];
+
+                                        // Cálculos de promedios para mostrar y ponderados para la pestaña "promedios"
+                                        const computeAvg = (vals) => {
+                                            const nums = vals.filter(v => v !== null && v !== undefined && v > 0);
+                                            if (!nums.length) return null;
+                                            const s = nums.reduce((a,b)=>a+b,0);
+                                            return Math.round((s/nums.length)*100)/100;
+                                        };
+                                        const g = editableGrades[student.id] || {};
+                                        const avgEval = computeAvg(Array.from({ length: 8 }, (_, i) => g[`evaluacion${i+1}`] ?? null));
+                                        const avgPract = computeAvg(Array.from({ length: 4 }, (_, i) => g[`practica${i+1}`] ?? null));
+                                        const avgPar = computeAvg(Array.from({ length: 2 }, (_, i) => g[`parcial${i+1}`] ?? null));
+                                        const wEval = avgEval !== null ? Math.round((avgEval * gradeWeights.evaluaciones) * 100) / 100 : null;
+                                        const wPract = avgPract !== null ? Math.round((avgPract * gradeWeights.practicas) * 100) / 100 : null;
+                                        const wPar = avgPar !== null ? Math.round((avgPar * gradeWeights.parciales) * 100) / 100 : null;
+                                        const wFinal = (() => {
+                                            const parts = [wEval, wPract, wPar].filter(v => v !== null);
+                                            if (!parts.length) return null;
+                                            const s = parts.reduce((a,b)=>a+b,0);
+                                            return Math.round(s * 100) / 100;
+                                        })();
+                                        const displayAverage = (() => {
+                                            if (activeTab === 'promedios') return wFinal;
+                                            if (activeTab === 'evaluaciones') return avgEval;
+                                            if (activeTab === 'practicas') return avgPract;
+                                            if (activeTab === 'parciales') return avgPar;
+                                            return average;
+                                        })();
                                         
                                         return (
                                             <tr key={student.id} className="hover:bg-gray-50">
@@ -578,13 +698,22 @@ const Grades = () => {
                                                         ))}
                                                     </>
                                                 )}
+
+                                                {activeTab === 'promedios' && (
+                                                    <>
+                                                        <td className="py-3 px-4 text-center text-sm">{wEval ?? '-'}</td>
+                                                        <td className="py-3 px-4 text-center text-sm">{wPract ?? '-'}</td>
+                                                        <td className="py-3 px-4 text-center text-sm">{wPar ?? '-'}</td>
+                                                        <td className="py-3 px-4 text-center text-sm font-semibold">{wFinal ?? '-'}</td>
+                                                    </>
+                                                )}
                                                 
                                                 <td className="py-3 px-4 text-center">
                                                     <span className={`inline-block py-1 px-3 rounded-full text-sm font-medium ${
-                                                        !average ? 'bg-gray-100 text-gray-800' :
-                                                        average >= 11 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                        !displayAverage ? 'bg-gray-100 text-gray-800' :
+                                                        displayAverage >= 11 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                                     }`}>
-                                                        {average || '-'}
+                                                        {displayAverage ?? '-'}
                                                     </span>
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
@@ -595,29 +724,31 @@ const Grades = () => {
                                                         {status}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 px-4 text-center">
-                                                    <button
-                                                        onClick={() => handleSaveStudentGrades(student.id)}
-                                                        disabled={!hasStudentChanges || isSaving}
-                                                        className={`px-3 py-1 rounded-md text-sm flex items-center ${
-                                                            hasStudentChanges 
-                                                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
-                                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                        } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                    >
-                                                        {isSaving ? (
-                                                            <>
-                                                                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500 mr-1"></div>
-                                                                Guardando...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Check size={14} className="mr-1" />
-                                                                Guardar
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                </td>
+                                                {activeTab !== 'promedios' && (
+                                                    <td className="py-3 px-4 text-center">
+                                                        <button
+                                                            onClick={() => handleSaveStudentGrades(student.id)}
+                                                            disabled={!hasStudentChanges || isSaving}
+                                                            className={`px-3 py-1 rounded-md text-sm flex items-center ${
+                                                                hasStudentChanges 
+                                                                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                                                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        >
+                                                            {isSaving ? (
+                                                                <>
+                                                                    <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500 mr-1"></div>
+                                                                    Guardando...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Check size={14} className="mr-1" />
+                                                                    Guardar
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}

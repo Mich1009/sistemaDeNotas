@@ -8,6 +8,9 @@ import toast from 'react-hot-toast';
 const MyCourses = () => {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Tabs por ciclos: impares al inicio del año, pares a mitad de año
+    const getDefaultCycleTab = () => (new Date().getMonth() + 1 <= 6 ? 'impares' : 'pares');
+    const [cycleTab, setCycleTab] = useState(getDefaultCycleTab());
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [students, setStudents] = useState([]);
     const [showStudents, setShowStudents] = useState(false);
@@ -111,6 +114,14 @@ const MyCourses = () => {
         setSelectedCourse(null);
     };
 
+    // Convertir números romanos de ciclo a entero para separar en impares/pares
+    const romanToInt = (roman) => {
+        if (!roman) return 0;
+        const map = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6 };
+        const key = String(roman).trim().toUpperCase();
+        return map[key] || 0;
+    };
+
     // Obtener años únicos de todos los ciclos disponibles
     const availableYears = [...new Set(allCycles.map(cycle => 
         cycle.año
@@ -131,8 +142,12 @@ const MyCourses = () => {
         
         // Filtrar por ciclo
         const matchesCycle = !selectedCycle || course.ciclo_nombre === selectedCycle;
+
+        // Filtrar por pestaña impares/pares
+        const cycleNum = romanToInt(course.ciclo_nombre);
+        const matchesOddEven = cycleTab === 'impares' ? cycleNum % 2 === 1 : cycleNum % 2 === 0;
         
-        return matchesSearch && matchesYear && matchesCycle;
+        return matchesSearch && matchesYear && matchesCycle && matchesOddEven;
     });
 
     // Renderizado condicional para la lista de cursos
@@ -200,6 +215,22 @@ const MyCourses = () => {
                             <Filter className="mr-2 text-gray-500" size={18} />
                             <span className="text-gray-700">Total: {filteredCourses.length} cursos</span>
                         </div>
+                    </div>
+
+                    {/* Pestañas de ciclos: Impares vs Pares */}
+                    <div className="flex space-x-2 mb-4">
+                        <button
+                            onClick={() => setCycleTab('impares')}
+                            className={`px-3 py-1 rounded-md text-sm border ${cycleTab === 'impares' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                        >
+                            Ciclos Impares
+                        </button>
+                        <button
+                            onClick={() => setCycleTab('pares')}
+                            className={`px-3 py-1 rounded-md text-sm border ${cycleTab === 'pares' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                        >
+                            Ciclos Pares
+                        </button>
                     </div>
 
                     {loading ? (
