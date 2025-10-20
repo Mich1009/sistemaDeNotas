@@ -115,7 +115,7 @@ const Reports = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm font-medium text-secondary-900">
                                         {type === 'estudiantes'
-                                            ? `${item.nombres} ${item.apellidos}`
+                                            ? `${item.first_name} ${item.last_name}`
                                             : item.nombre
                                         }
                                     </div>
