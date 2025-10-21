@@ -108,6 +108,48 @@ export const gradesService = {
     getGradeHistory: async (gradeId) => {
         const response = await api.get(`/teacher/notas/${gradeId}/historial`);
         return response.data;
+    },
+
+    // Cargar notas desde Excel
+    uploadGradesFromExcel: async (courseId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await api.post(`/teacher/courses/${courseId}/grades/upload-excel`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+
+    // Descargar plantilla Excel
+    downloadExcelTemplate: async (courseId) => {
+        const response = await api.get(`/teacher/courses/${courseId}/grades/excel-template`, {
+            responseType: 'blob',
+        });
+        return response.data;
+    }
+};
+
+// Servicios de descripciones de evaluaciones
+export const evaluationDescriptionService = {
+    // Obtener todas las descripciones de evaluaciones de un curso
+    getEvaluationDescriptions: async (courseId) => {
+        const response = await api.get(`/teacher/courses/${courseId}/evaluation-descriptions`);
+        return response.data;
+    },
+
+    // Crear o actualizar una descripción de evaluación
+    saveEvaluationDescription: async (courseId, descriptionData) => {
+        const response = await api.post(`/teacher/courses/${courseId}/evaluation-descriptions`, descriptionData);
+        return response.data;
+    },
+
+    // Eliminar una descripción de evaluación
+    deleteEvaluationDescription: async (courseId, tipoEvaluacion) => {
+        const response = await api.delete(`/teacher/courses/${courseId}/evaluation-descriptions/${tipoEvaluacion}`);
+        return response.data;
     }
 };
 
