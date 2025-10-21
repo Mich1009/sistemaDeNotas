@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Filter, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
-import useAuthStore from '../../../modules/auth/store/authStore';
+import useAuthStore from '../../auth/store/authStore';
 import { getCourses } from '../services/apiTeacher';
 
 const Schedule = () => {

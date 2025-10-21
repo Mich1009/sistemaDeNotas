@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Filter, Download, BarChart2, PieChart, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import useAuthStore from '../../modules/auth/store/authStore';
+import useAuthStore from '../../auth/store/authStore';
 
 const Reports = () => {
     const { user } = useAuthStore();

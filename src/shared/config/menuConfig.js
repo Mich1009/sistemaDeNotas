@@ -1,17 +1,4 @@
-import {
-    Users,
-    BookOpen,
-    GraduationCap,
-    Folder,
-    FileText,
-    Settings,
-    BarChart3,
-    Home,
-    Calendar,
-    Award,
-    User,
-    HeartPulse,
-} from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Folder, FileText, Settings, BarChart3, Home, Calendar, Award, User, HeartPulse } from 'lucide-react';
 
 // Importar componentes de Admin
 import AdminDashboard from '../../modules/admin/views/Dashboard.jsx';
@@ -24,12 +11,12 @@ import Sistema from '../../modules/admin/views/Sistema.jsx'
 import Configuracion from '../../modules/admin/views/Configuracion.jsx';
 
 // Importar componentes de Teacher
-import TeacherDashboard from '../../modules/teacher/components/Dashboard';
-import MyCourses from '../../modules/teacher/components/MyCourses';
-import Grades from '../../modules/teacher/components/Grades';
-import TeacherSchedule from '../../modules/teacher/components/Schedule';
-import TeacherReports from '../../modules/teacher/components/TeacherReports';
-import TeacherProfile from '../../modules/teacher/components/Profile';
+import TeacherDashboard from '../../modules/teacher/views/Dashboard';
+import MyCourses from '../../modules/teacher/views/MyCourses';
+import Grades from '../../modules/teacher/views/Grades';
+import TeacherSchedule from '../../modules/teacher/views/Schedule';
+import Reports from '../../modules/teacher/views/Reports';
+import TeacherProfile from '../../modules/teacher/views/Profile';
 
 // Importar componentes de Student
 import StudentDashboard from '../../modules/student/components/Dashboard';
@@ -117,7 +104,7 @@ export const menuConfigs = {
             id: 'reports',
             label: 'Reportes',
             icon: BarChart3,
-            component: TeacherReports
+            component: Reports
         },
         {
             id: 'profile',
