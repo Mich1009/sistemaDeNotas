@@ -32,4 +32,20 @@ export const authService = {
         });
         return response.data;
     },
+
+    // Verificar token antes de cambiar contraseña
+    verifyResetToken: async (token) => {
+      try {
+        const response = await api.post('/auth/password-reset/verify-token', { token });
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    // Obtener estado de recuperación
+    getResetStatus: async (email) => {
+        const response = await api.get(`/auth/password-reset/status/${email}`);
+        return response.data;
+    }
 };
