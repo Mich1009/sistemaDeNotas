@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getStudentsWithGrades, gradesService } from '../services/apiTeacher';
+import { cursosService, calificacionesService } from '../services/apiTeacher';
 import toast from 'react-hot-toast';
 
 const useGrades = () => {
@@ -14,12 +14,12 @@ const useGrades = () => {
         setSelectedCourse(courseId);
         setLoading(true);
         try {
-            const response = await getStudentsWithGrades(courseId);
-            console.log("📘 Estudiantes con notas:", response.data);
-            setStudents(response.data || []);
+            const response = await cursosService.getStudentsWithGrades(courseId);
+            console.log("📘 Estudiantes con notas:", response);
+            setStudents(response || []);
             
             const initialEditable = {};
-            response.data.forEach(student => {
+            response.forEach(student => {
                 if (student.notas && student.notas.length > 0) {
                     student.notas.forEach(nota => {
                         if (!initialEditable[student.id]) {
@@ -68,7 +68,6 @@ const useGrades = () => {
             const gradeToSave = {
                 estudiante_id: parseInt(studentId),
                 curso_id: selectedCourse,
-                tipo_evaluacion: "EVALUACION",
                 fecha_evaluacion: new Date().toISOString().split('T')[0],
                 observaciones: "Notas actualizadas",
                 peso: 1.0
@@ -108,7 +107,7 @@ const useGrades = () => {
 
             console.log("📤 ENVIANDO NOTA INDIVIDUAL:", { notas: [gradeToSave] });
             
-            await gradesService.updateGradesBulk(selectedCourse, { notas: [gradeToSave] });
+            await calificacionesService.updateGradesBulk(selectedCourse, { notas: [gradeToSave] });
             
             toast.success(`✅ Notas guardadas para ${getStudentName(studentId)}`);
             
@@ -178,7 +177,6 @@ const useGrades = () => {
                     const gradeToSave = {
                         estudiante_id: parseInt(studentId),
                         curso_id: selectedCourse,
-                        tipo_evaluacion: "EVALUACION",
                         fecha_evaluacion: new Date().toISOString().split('T')[0],
                         observaciones: "Actualización masiva",
                         peso: 1.0
@@ -215,7 +213,7 @@ const useGrades = () => {
                 return;
             }
             
-            await gradesService.updateGradesBulk(selectedCourse, { notas: gradesToSave });
+            await calificacionesService.updateGradesBulk(selectedCourse, { notas: gradesToSave });
             
             toast.success(`✅ ${gradesToSave.length} estudiantes actualizados correctamente`);
             setHasChanges(false);

@@ -162,7 +162,7 @@ const EstudianteDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-secondary-900">
@@ -195,7 +195,7 @@ const EstudianteDashboard = () => {
           value={dashboardData.estadisticas?.cursos_aprobados || 0}
           icon={Award}
           color="bg-purple-500"
-          subtitle="Nota ≥ 11"
+          subtitle="Nota ≥ 13"
         />
         <StatCard
           title="Créditos Completados"

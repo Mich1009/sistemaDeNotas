@@ -62,7 +62,11 @@ export const academicService = {
 // Servicios de calificaciones (para estudiante)
 export const gradesService = {
     getGrades: async (params = {}) => {
-        const response = await api.get('/student/grades', { params });
+        // Limpiar parámetros vacíos antes de enviar
+        const cleanParams = Object.fromEntries(
+            Object.entries(params).filter(([key, value]) => value !== '' && value !== null && value !== undefined)
+        );
+        const response = await api.get('/student/grades', { params: cleanParams });
         return response.data;
     },
 
@@ -77,7 +81,11 @@ export const gradesService = {
     },
 
     getGradesStatistics: async (params = {}) => {
-        const response = await api.get('/student/grades/statistics', { params });
+        // Limpiar parámetros vacíos antes de enviar
+        const cleanParams = Object.fromEntries(
+            Object.entries(params).filter(([key, value]) => value !== '' && value !== null && value !== undefined)
+        );
+        const response = await api.get('/student/grades/statistics', { params: cleanParams });
         return response.data;
     },
 
@@ -113,13 +121,21 @@ export const studentService = {
 
     // Obtener datos completos para la vista de calificaciones
     getGradesOverview: async (filters = {}) => {
+        // Separar filtros de backend y cliente
+        const backendFilters = { ...filters };
+        delete backendFilters.año; // Remover año de los filtros del backend
+        
         const [grades, filtersOptions, statistics] = await Promise.all([
-            gradesService.getGrades(filters),
+            gradesService.getGrades(backendFilters),
             gradesService.getGradesFilters(),
-            gradesService.getGradesStatistics(filters)
+            gradesService.getGradesStatistics(backendFilters)
         ]);
+        
+        // Aplicar filtros del cliente (incluyendo año)
+        const filteredGrades = gradeUtils.filterGrades(grades, filters);
+        
         return {
-            grades,
+            grades: filteredGrades,
             filters: filtersOptions,
             statistics
         };
@@ -163,7 +179,7 @@ export const gradeUtils = {
     },
 
     // Determinar estado basado en la nota
-    getGradeStatus: (nota, notaAprobacion = 11) => {
+    getGradeStatus: (nota, notaAprobacion = 13) => {
         if (nota === null || nota === undefined) return 'SIN_NOTA';
         return nota >= notaAprobacion ? 'APROBADO' : 'DESAPROBADO';
     },
@@ -240,7 +256,7 @@ export const gradeUtils = {
                 pendientes++;
             } else {
                 promedios.push(parseFloat(promedio));
-                if (parseFloat(promedio) >= 11) {
+                if (parseFloat(promedio) >= 13) {
                     aprobados++;
                 } else {
                     desaprobados++;
@@ -273,6 +289,7 @@ export const gradeUtils = {
                     curso_nombre: nota.curso_nombre,
                     docente_nombre: nota.docente_nombre,
                     ciclo_nombre: nota.ciclo_nombre,
+                    ciclo_año: nota.ciclo_año, // ✅ Agregar el campo ciclo_año
                     notas: [],
                     promedio_curso: null
                 };
@@ -299,23 +316,35 @@ export const gradeUtils = {
     filterGrades: (grades = [], filters = {}) => {
         let filtered = [...grades];
 
-        // Filtrar por curso
-        if (filters.curso_id) {
-            filtered = filtered.filter(nota => nota.curso_id === parseInt(filters.curso_id));
+        // Filtrar por ciclo ID
+        if (filters.ciclo_id) {
+            filtered = filtered.filter(nota => nota.ciclo_id === parseInt(filters.ciclo_id));
         }
 
-        // Filtrar por ciclo (si existe el campo ciclo_nombre)
-        if (filters.ciclo_nombre) {
+        // Filtrar por docente ID
+        if (filters.docente_id) {
+            filtered = filtered.filter(nota => nota.docente_id === parseInt(filters.docente_id));
+        }
+
+        // Filtrar por año
+        if (filters.año) {
             filtered = filtered.filter(nota => 
-                nota.ciclo_nombre && nota.ciclo_nombre.toLowerCase().includes(filters.ciclo_nombre.toLowerCase())
+                nota.ciclo_año && nota.ciclo_año.toString() === filters.año.toString()
             );
         }
 
-        // Filtrar por docente
-        if (filters.docente_nombre) {
-            filtered = filtered.filter(nota => 
-                nota.docente_nombre && nota.docente_nombre.toLowerCase().includes(filters.docente_nombre.toLowerCase())
-            );
+        // Filtrar por búsqueda de texto (curso, docente o ciclo)
+        if (filters.search && filters.search.trim()) {
+            const searchTerm = filters.search.toLowerCase().trim();
+            filtered = filtered.filter(nota => {
+                const cursoNombre = (nota.curso_nombre || '').toLowerCase();
+                const docenteNombre = (nota.docente_nombre || '').toLowerCase();
+                const cicloNombre = (nota.ciclo_nombre || '').toLowerCase();
+                
+                return cursoNombre.includes(searchTerm) || 
+                       docenteNombre.includes(searchTerm) || 
+                       cicloNombre.includes(searchTerm);
+            });
         }
 
         // Filtrar por estado
@@ -323,9 +352,9 @@ export const gradeUtils = {
             filtered = filtered.filter(nota => {
                 const promedio = gradeUtils.calculateAverage(nota);
                 if (filters.estado === 'APROBADO') {
-                    return promedio !== null && parseFloat(promedio) >= 11;
+                    return promedio !== null && parseFloat(promedio) >= 13;
                 } else if (filters.estado === 'DESAPROBADO') {
-                    return promedio !== null && parseFloat(promedio) < 11;
+                    return promedio !== null && parseFloat(promedio) < 13;
                 } else if (filters.estado === 'PENDIENTE') {
                     return promedio === null;
                 }

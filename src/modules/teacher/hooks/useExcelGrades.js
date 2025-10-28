@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { gradesService } from '../services/apiTeacher';
+import { calificacionesService } from '../services/apiTeacher';
 
 const useExcelGrades = () => {
     const [isUploading, setIsUploading] = useState(false);
@@ -23,7 +23,7 @@ const useExcelGrades = () => {
 
         setIsUploading(true);
         try {
-            const result = await gradesService.uploadGradesFromExcel(courseId, file);
+            const result = await calificacionesService.uploadGradesFromExcel(courseId, file);
             
             if (result.notas_procesadas > 0) {
                 toast.success(`✅ ${result.notas_procesadas} notas procesadas exitosamente`);
@@ -49,7 +49,7 @@ const useExcelGrades = () => {
     const downloadExcelTemplate = async (courseId) => {
         setIsDownloading(true);
         try {
-            const blob = await gradesService.downloadExcelTemplate(courseId);
+            const blob = await calificacionesService.downloadExcelTemplate(courseId);
             
             // Crear URL para descargar el archivo
             const url = window.URL.createObjectURL(blob);
@@ -80,3 +80,4 @@ const useExcelGrades = () => {
 };
 
 export default useExcelGrades;
+
