@@ -7,7 +7,6 @@ import Courses from '../../modules/admin/views/Course.jsx';
 import Students from '../../modules/admin/views/Students.jsx';
 import Matriculas from '../../modules/admin/views/Matriculas';
 import AdminReports from '../../modules/admin/views/Reports.jsx';
-import Sistema from '../../modules/admin/views/Sistema.jsx'
 import Configuracion from '../../modules/admin/views/Configuracion.jsx';
 
 // Importar componentes de Teacher
@@ -19,10 +18,11 @@ import Reports from '../../modules/teacher/views/Reports';
 import TeacherProfile from '../../modules/teacher/views/Profile';
 
 // Importar componentes de Student
-import StudentDashboard from '../../modules/student/components/Dashboard';
-import MyGrades from '../../modules/student/components/MyGrades';
-import StudentSchedule from '../../modules/student/components/Schedule';
-import Profile from '../../modules/student/components/Profile';
+import StudentDashboard from '../../modules/student/views/Dashboard';
+import MyGrades from '../../modules/student/views/MyGrades';
+import CoursesStudent from '../../modules/student/views/MyCourses';
+import StudentSchedule from '../../modules/student/views/Schedule';
+import Profile from '../../modules/student/views/Profile';
 
 export const menuConfigs = {
     admin: [
@@ -62,12 +62,7 @@ export const menuConfigs = {
             icon: FileText,
             component: AdminReports
         },
-        {
-            id: 'systema',
-            label: 'Sistema',
-            icon: HeartPulse,
-            component: Sistema,
-        },
+
         {
             id: 'settings',
             label: 'Configuración',
@@ -125,6 +120,12 @@ export const menuConfigs = {
             label: 'Mis Calificaciones',
             icon: Award,
             component: MyGrades
+        },
+        {
+            id: 'courses',
+            label: 'Mis Cursos',
+            icon: BookOpen,
+            component: CoursesStudent
         },
         {
             id: 'schedule',

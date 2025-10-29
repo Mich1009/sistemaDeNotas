@@ -114,12 +114,25 @@ const Grades = () => {
                             <button
                                 key={course.id}
                                 onClick={() => handleCourseSelect(course.id)}
-                                className={`p-4 border rounded-lg text-left transition-all ${selectedCourse === course.id
+                                className={`p-4 border rounded-lg text-left transition-all relative ${selectedCourse === course.id
                                     ? 'border-blue-500 bg-blue-50'
                                     : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                                     }`}
                             >
-                                <h3 className="font-medium text-gray-800">{course.nombre}</h3>
+                                {/* Indicador de estado basado en fechas */}
+                                {(() => {
+                                    const now = new Date();
+                                    const start = new Date(course.fecha_inicio);
+                                    const end = new Date(course.fecha_fin);
+                                    const isActive = now >= start && now <= end;
+                                    
+                                    return (
+                                        <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
+                                            isActive ? 'bg-green-500' : 'bg-red-500'
+                                        }`} title={isActive ? 'Activo' : 'Inactivo'}></div>
+                                    );
+                                })()}
+                                <h3 className="font-medium text-gray-800 pr-6">{course.nombre}</h3>
                                 <div className='flex items-center justify-between mt-1'>
                                     <p className="text-sm text-gray-500">Ciclo: {course.ciclo_nombre} - {course.ciclo_año}</p>
                                     <div className="flex items-center">

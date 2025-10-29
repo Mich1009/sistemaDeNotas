@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { dashboardService, reportesService } from '../services/apiAdmin';
+import { dashboardService } from '../services/apiAdmin';
 
 export const useDashboard = () => {
     const [dashboardData, setDashboardData] = useState({
@@ -57,7 +57,7 @@ export const useDashboard = () => {
 
     const loadEstudiantesPorCiclo = async (year = selectedYear) => {
         try {
-            const data = await reportesService.getEstudiantesPorCiclo(year);
+            const data = await dashboardService.getEstudiantesPorCiclo(year);
             setEstudiantesPorCiclo(data.estadisticas || []);
 
             // Actualizar años disponibles si vienen del backend

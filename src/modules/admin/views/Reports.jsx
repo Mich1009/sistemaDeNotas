@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     FileText,
     Download,
@@ -6,305 +6,271 @@ import {
     TrendingUp,
     Users,
     BookOpen,
-    GraduationCap,
+    Network,
     Filter,
-    RefreshCw,
+    Calendar,
+    FileSpreadsheet
 } from 'lucide-react';
+import ReportesDinamicos from '../components/ReportesDinamicos';
+import EstudiantesModal from '../components/EstudiantesModal';
+import { useReportesDinamicos } from '../hooks/useReportesDinamicos';
+import { reportesService } from '../services/apiAdmin';
 import toast from 'react-hot-toast';
-import { useReportes } from '../hooks';
-import Estadistica from './Estadistica';
 
 const Reports = () => {
+    const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('dinamicos');
+
+    // Hook para manejar el estado del modal de estudiantes
     const {
-        estadisticasGenerales,
-        rendimientoEstudiantes,
-        rendimientoCursos,
-        loading,
-        error,
-        getEstadisticasGenerales,
-        getRendimientoEstudiantes,
-        getRendimientoCursos,
-        exportarEstudiantes,
-        exportarDocentes,
-        exportarNotas,
-        refreshReportes
-    } = useReportes();
+        modalEstudiantes,
+        cerrarModalEstudiantes,
+        abrirModalEstudiantes
+    } = useReportesDinamicos();
 
-    const [activeTab, setActiveTab] = useState('estadisticas');
-    const [dateRange, setDateRange] = useState({
-        fechaInicio: '',
-        fechaFin: ''
-    });
-
-    const handleExport = async (type) => {
+    // Función para exportar notas de todos los ciclos
+    const exportarTodasLasNotas = async () => {
+        setLoading(true);
         try {
-            let success = false;
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/reportes/exportar/notas-todos-ciclos?formato=excel`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
 
-            switch (type) {
-                case 'estudiantes':
-                    success = await exportarEstudiantes();
-                    break;
-                case 'docentes':
-                    success = await exportarDocentes();
-                    break;
-                case 'notas':
-                    success = await exportarNotas();
-                    break;
-                default:
-                    throw new Error('Tipo de exportación no válido');
-            }
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `notas_todos_ciclos_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
 
-            if (success) {
-                toast.success(`${type} exportado exitosamente`);
+                toast.success('Archivo de notas descargado exitosamente');
+            } else {
+                throw new Error('Error en la descarga');
             }
         } catch (error) {
-            console.error('Error en exportación:', error);
-            toast.error(`Error al exportar ${type}: ${error.message || 'Error desconocido'}`);
+            toast.error('Error al exportar notas');
+            console.error('Error:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const ExportCard = ({ title, description, icon: Icon, color, onExport, type }) => (
-        <div className="card p-6">
-            <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 ${color} rounded-full flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-semibold text-secondary-900">{title}</h3>
-                    <p className="text-sm text-secondary-600">{description}</p>
-                </div>
-                <button
-                    onClick={() => onExport(type)}
-                    className="btn-primary flex items-center space-x-2"
-                >
-                    <Download className="w-4 h-4" />
-                    <span>Exportar</span>
-                </button>
-            </div>
-        </div>
-    );
-
-    const PerformanceTable = ({ data, title, type }) => (
-        <div className="card">
-            <div className="px-6 py-4 border-b border-secondary-200">
-                <h3 className="text-lg font-semibold text-secondary-900">{title}</h3>
-            </div>
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-secondary-200">
-                    <thead className="bg-secondary-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                {type === 'estudiantes' ? 'Estudiante' : 'Curso'}
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Promedio
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Estado
-                            </th>
-                            {type === 'estudiantes' && (
-                                <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                    Cursos
-                                </th>
-                            )}
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-secondary-200">
-                        {data.map((item, index) => (
-                            <tr key={index}>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-secondary-900">
-                                        {type === 'estudiantes'
-                                            ? `${item.first_name} ${item.last_name}`
-                                            : item.nombre
-                                        }
-                                    </div>
-                                    {type === 'estudiantes' && (
-                                        <div className="text-sm text-secondary-500">
-                                            DNI: {item.dni}
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.promedio >= 14
-                                        ? 'bg-green-100 text-green-800'
-                                        : item.promedio >= 11
-                                            ? 'bg-yellow-100 text-yellow-800'
-                                            : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {item.promedio?.toFixed(2) || 'N/A'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.promedio >= 11
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {item.promedio >= 11 ? 'Aprobado' : 'Desaprobado'}
-                                    </span>
-                                </td>
-                                {type === 'estudiantes' && (
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
-                                        {item.total_cursos || 0}
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-500"></div>
-            </div>
-        );
-    }
-
     return (
-        <div className="space-y-6 p-3 pb-10">
+        <div className="p-3">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-secondary-900">Reportes y Estadísticas</h1>
-                    <p className="text-secondary-600 mt-2">
-                        Visualiza estadísticas y exporta datos del sistema
-                    </p>
+                    <h1 className="text-3xl font-bold text-gray-900">Sistema de Reportes</h1>
+                    <p className="text-gray-600">Visualización interactiva y exportación de datos académicos</p>
                 </div>
-                <button
-                    onClick={refreshReportes}
-                    className="btn-secondary flex items-center space-x-2"
-                >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Actualizar</span>
-                </button>
+
+                {/* Botones de exportación rápida */}
+                <div className="flex items-center space-x-3">
+                    <button
+                        onClick={exportarTodasLasNotas}
+                        disabled={loading}
+                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md disabled:opacity-50"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" />
+                        <span>{loading ? 'Exportando...' : 'Exportar Todas las Notas'}</span>
+                    </button>
+                </div>
             </div>
 
-            {/* Tabs */}
-            <div className="card">
-                <nav className="flex space-x-8 px-6">
-                    {[
-                        { key: 'estadisticas', label: 'Estadísticas', icon: BarChart3 },
-                        { key: 'rendimiento', label: 'Rendimiento Académico', icon: TrendingUp },
-                        { key: 'exportar', label: 'Exportar Datos', icon: Download }
-                    ].map(({ key, label, icon: Icon }) => (
-                        <button
-                            key={key}
-                            onClick={() => setActiveTab(key)}
-                            className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${activeTab === key
-                                ? 'border-primary-500 text-primary-600'
-                                : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
-                                }`}
-                        >
-                            <Icon className="w-4 h-4" />
-                            <span>{label}</span>
-                        </button>
-                    ))}
-                </nav>
-            </div>
+            {/* Tabs para diferentes tipos de reportes */}
+            <div className="w-full">
+                <div className="flex border-b border-gray-200 mt-2">
+                    <button
+                        onClick={() => setActiveTab('dinamicos')}
+                        className={`flex items-center space-x-2 px-4 py-2 border-b-2 font-medium text-sm ${activeTab === 'dinamicos'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Network className="w-4 h-4" />
+                        <span>Reportes Dinámicos</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('estadisticos')}
+                        className={`flex items-center space-x-2 px-4 py-2 border-b-2 font-medium text-sm ${activeTab === 'estadisticos'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <BarChart3 className="w-4 h-4" />
+                        <span>Reportes Estadísticos</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('exportacion')}
+                        className={`flex items-center space-x-2 px-4 py-2 border-b-2 font-medium text-sm ${activeTab === 'exportacion'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Exportación</span>
+                    </button>
+                </div>
 
-            {/* Content based on active tab */}
-            {activeTab === 'estadisticas' && (
-                <Estadistica />
-            )}
+                {/* Contenido de Reportes Dinámicos */}
+                {activeTab === 'dinamicos' && (
+                    <ReportesDinamicos abrirModalEstudiantes={abrirModalEstudiantes} />
+                )}
 
-            {activeTab === 'rendimiento' && (
-                <div className="space-y-6">
-                    {/* Date Range Filter */}
-                    <div className="card p-6">
-                        <div className="flex items-center space-x-4">
-                            <Filter className="w-5 h-5 text-secondary-400" />
-                            <div className="flex items-center space-x-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary-700">
-                                        Fecha Inicio
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={dateRange.fechaInicio}
-                                        onChange={(e) => setDateRange(prev => ({
-                                            ...prev,
-                                            fechaInicio: e.target.value
-                                        }))}
-                                        className="mt-1 block w-full px-3 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                                    />
+                {/* Contenido de Reportes Estadísticos */}
+                {activeTab === 'estadisticos' && (
+                    <div className="mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="bg-white rounded-lg shadow">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center space-x-2">
+                                        <TrendingUp className="w-5 h-5" />
+                                        <h3 className="text-lg font-medium">Rendimiento Académico</h3>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary-700">
-                                        Fecha Fin
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={dateRange.fechaFin}
-                                        onChange={(e) => setDateRange(prev => ({
-                                            ...prev,
-                                            fechaFin: e.target.value
-                                        }))}
-                                        className="mt-1 block w-full px-3 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                                    />
+                                <div className="p-6">
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Análisis de promedios, tasas de aprobación y tendencias por ciclo
+                                    </p>
+                                    <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                        <BarChart3 className="w-4 h-4" />
+                                        <span>Ver Estadísticas</span>
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        getRendimientoEstudiantes(dateRange);
-                                        getRendimientoCursos(dateRange);
-                                    }}
-                                    className="btn-primary mt-6"
-                                >
-                                    Filtrar
-                                </button>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center space-x-2">
+                                        <Users className="w-5 h-5" />
+                                        <h3 className="text-lg font-medium">Análisis de Estudiantes</h3>
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Distribución de estudiantes por carrera, ciclo y rendimiento
+                                    </p>
+                                    <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                        <Users className="w-4 h-4" />
+                                        <span>Ver Análisis</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center space-x-2">
+                                        <BookOpen className="w-5 h-5" />
+                                        <h3 className="text-lg font-medium">Análisis de Cursos</h3>
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Rendimiento por curso, docente y dificultad académica
+                                    </p>
+                                    <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                        <BookOpen className="w-4 h-4" />
+                                        <span>Ver Cursos</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
+                )}
 
-                    {/* Performance Tables */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <PerformanceTable
-                            data={rendimientoEstudiantes}
-                            title="Rendimiento de Estudiantes"
-                            type="estudiantes"
-                        />
-                        <PerformanceTable
-                            data={rendimientoCursos}
-                            title="Rendimiento de Cursos"
-                            type="cursos"
-                        />
-                    </div>
-                </div>
-            )}
+                {/* Contenido de Exportación */}
+                {activeTab === 'exportacion' && (
+                    <div className="mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-lg shadow">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center space-x-2">
+                                        <FileSpreadsheet className="w-5 h-5" />
+                                        <h3 className="text-lg font-medium">Exportación de Notas</h3>
+                                    </div>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={exportarTodasLasNotas}
+                                            disabled={loading}
+                                            className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md disabled:opacity-50"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            <span>{loading ? 'Exportando...' : 'Exportar Todas las Notas (Excel)'}</span>
+                                        </button>
 
-            {activeTab === 'exportar' && (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <ExportCard
-                            title="Exportar Estudiantes"
-                            description="Descarga la lista completa de estudiantes en formato Excel"
-                            icon={Users}
-                            color="bg-blue-500"
-                            onExport={handleExport}
-                            type="estudiantes"
-                        />
-                        <ExportCard
-                            title="Exportar Docentes"
-                            description="Descarga la lista completa de docentes en formato Excel"
-                            icon={GraduationCap}
-                            color="bg-green-500"
-                            onExport={handleExport}
-                            type="docentes"
-                        />
-                        <ExportCard
-                            title="Exportar Notas"
-                            description="Descarga todas las calificaciones en formato Excel"
-                            icon={FileText}
-                            color="bg-purple-500"
-                            onExport={handleExport}
-                            type="notas"
-                        />
+                                        <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                            <Calendar className="w-4 h-4" />
+                                            <span>Exportar por Período</span>
+                                        </button>
+
+                                        <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                            <Filter className="w-4 h-4" />
+                                            <span>Exportar con Filtros</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                                        <p className="font-medium mb-1">Formatos disponibles:</p>
+                                        <ul className="list-disc list-inside space-y-1">
+                                            <li>Excel (.xlsx) - Recomendado para análisis</li>
+                                            <li>CSV (.csv) - Compatible con otras herramientas</li>
+                                            <li>PDF (.pdf) - Para reportes impresos</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center space-x-2">
+                                        <FileText className="w-5 h-5" />
+                                        <h3 className="text-lg font-medium">Reportes Personalizados</h3>
+                                    </div>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <p className="text-sm text-gray-600">
+                                        Crea reportes personalizados con filtros específicos y formatos adaptados a tus necesidades.
+                                    </p>
+
+                                    <div className="space-y-3">
+                                        <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                            <BarChart3 className="w-4 h-4" />
+                                            <span>Reporte de Rendimiento</span>
+                                        </button>
+
+                                        <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                            <Users className="w-4 h-4" />
+                                            <span>Reporte de Estudiantes</span>
+                                        </button>
+
+                                        <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                            <BookOpen className="w-4 h-4" />
+                                            <span>Reporte de Cursos</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
+
+            {/* Modal de estudiantes - Se renderiza globalmente */}
+            <EstudiantesModal 
+                isOpen={modalEstudiantes.isOpen}
+                onClose={cerrarModalEstudiantes}
+                cursoId={modalEstudiantes.cursoId}
+                cursoNombre={modalEstudiantes.cursoNombre}
+            />
         </div>
     );
 };

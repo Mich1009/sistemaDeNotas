@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Search, AlertCircle, Check, UploadCloud, DownloadCloud, Info } from 'lucide-react';
+import { Save, Search, AlertCircle, Check, UploadCloud, DownloadCloud, Info, FileSpreadsheet } from 'lucide-react';
 import useTableNota from '../hooks/useTableNota';
 import useExcelGrades from '../hooks/useExcelGrades';
 import EvaluationDescriptionModal from './EvaluationDescriptionModal';
 import ExcelUploadModal from './ExcelUploadModal';
-import { evaluationDescriptionService } from '../services/apiTeacher';
+import { calificacionesService } from '../services/apiTeacher';
 import toast from 'react-hot-toast';
 
 const TableNota = ({ courses, students, selectedCourse, calculateCourseAverage, calculateStudentAverage, handleSaveAllGrades, handleSaveStudentGrades, hasChanges, loading, handleGradeChange, hasUnsavedChanges, savingRows, editableGrades }) => {
@@ -17,7 +17,8 @@ const TableNota = ({ courses, students, selectedCourse, calculateCourseAverage, 
         filterStudents,
         getStudentStatus,
         formatGradeInput,
-        validateGradeInput
+        validateGradeInput,
+        handleExportAverages
     } = useTableNota();
 
     // Estados para el modal de descripción
@@ -37,7 +38,7 @@ const TableNota = ({ courses, students, selectedCourse, calculateCourseAverage, 
         const loadEvaluationDescriptions = async () => {
             if (selectedCourse) {
                 try {
-                    const descriptions = await evaluationDescriptionService.getEvaluationDescriptions(selectedCourse);
+                    const descriptions = await calificacionesService.getEvaluationDescriptions(selectedCourse);
                     // Convertir array a objeto para fácil acceso
                     const descriptionsMap = {};
                     descriptions.forEach(desc => {
@@ -61,7 +62,7 @@ const TableNota = ({ courses, students, selectedCourse, calculateCourseAverage, 
     const handleSaveDescription = async (descriptionData) => {
         try {
             // Llamada al backend para guardar la descripción
-            await evaluationDescriptionService.saveEvaluationDescription(selectedCourse, descriptionData);
+            await calificacionesService.saveEvaluationDescription(selectedCourse, descriptionData);
 
             // Actualizar el estado local
             setEvaluationDescriptions(prev => ({
@@ -183,6 +184,14 @@ const TableNota = ({ courses, students, selectedCourse, calculateCourseAverage, 
                     >
                         <DownloadCloud size={16} className="mr-1" />
                         {isDownloading ? 'Descargando...' : 'Descargar Plantilla'}
+                    </button>
+                    <button 
+                        onClick={() => handleExportAverages(courses, selectedCourse, filteredStudents, calculateStudentAverage)}
+                        className='px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center'
+                        title="Exportar promedios de estudiantes"
+                    >
+                        <FileSpreadsheet size={16} className="mr-1" />
+                        Exportar Promedios
                     </button>   
                 </div>
             </nav>
