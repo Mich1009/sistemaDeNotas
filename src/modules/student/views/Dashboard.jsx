@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  BookOpen, 
-  TrendingUp, 
-  Award, 
+import {
+  BookOpen,
+  TrendingUp,
+  Award,
   Calendar,
   Target,
   Clock,
@@ -12,7 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../auth/store/authStore';
-import { academicService } from '../services/apiStudent';
+import { dashboardService } from '../services/apiStudent';
 
 const EstudianteDashboard = () => {
   const { user } = useAuthStore();
@@ -31,7 +31,7 @@ const EstudianteDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await academicService.getDashboard();
+      const response = await dashboardService.getDashboard();
       setDashboardData(response);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -53,11 +53,10 @@ const EstudianteDashboard = () => {
             <p className="text-xs text-secondary-500 mt-1">{subtitle}</p>
           )}
           {status && (
-            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${
-              status === 'good' ? 'bg-green-100 text-green-800' :
-              status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
-            }`}>
+            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${status === 'good' ? 'bg-green-100 text-green-800' :
+                status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+              }`}>
               {status === 'good' ? 'Excelente' : status === 'warning' ? 'Regular' : 'Necesita mejorar'}
             </div>
           )}
@@ -72,14 +71,14 @@ const EstudianteDashboard = () => {
   const CourseCard = ({ course }) => {
     // Buscar la nota por nombre del curso
     const grade = dashboardData.notas_recientes.find(g => g.curso_nombre === course.nombre);
-    
+
     // Verificar si tiene notas usando los campos reales
     const hasGrades = grade && (
       grade.evaluacion1 || grade.evaluacion2 || grade.evaluacion3 || grade.evaluacion4 ||
       grade.practica1 || grade.practica2 || grade.practica3 || grade.practica4 ||
       grade.parcial1 || grade.parcial2 || grade.promedio_final
     );
-    
+
     return (
       <Link to={`/estudiante/courses/${course.id}`} className="block">
         <div className="card p-6 hover:shadow-lg transition-shadow cursor-pointer">
@@ -91,7 +90,7 @@ const EstudianteDashboard = () => {
               <p className="text-sm text-secondary-600 mb-3">
                 {course.codigo} • {course.docente_nombre}
               </p>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-xs text-secondary-500">
                   <div className="flex items-center">
@@ -105,10 +104,9 @@ const EstudianteDashboard = () => {
                     </div>
                   )}
                 </div>
-                
-                <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  hasGrades ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}>
+
+                <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${hasGrades ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
                   {hasGrades ? (
                     <>
                       <CheckCircle className="w-3 h-3 mr-1" />
@@ -123,7 +121,7 @@ const EstudianteDashboard = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="ml-4">
               <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-primary-600" />
@@ -162,7 +160,7 @@ const EstudianteDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-secondary-900">
@@ -195,7 +193,7 @@ const EstudianteDashboard = () => {
           value={dashboardData.estadisticas?.cursos_aprobados || 0}
           icon={Award}
           color="bg-purple-500"
-          subtitle="Nota ≥ 11"
+          subtitle="Nota ≥ 13"
         />
         <StatCard
           title="Créditos Completados"
@@ -210,14 +208,14 @@ const EstudianteDashboard = () => {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-secondary-900">Mis Cursos</h2>
-          <Link 
-            to="/estudiante/courses" 
+          <Link
+            to="/estudiante/courses"
             className="text-primary-600 hover:text-primary-700 text-sm font-medium"
           >
             Ver todos
           </Link>
         </div>
-        
+
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (
@@ -251,14 +249,14 @@ const EstudianteDashboard = () => {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-secondary-900">Notas Recientes</h2>
-          <Link 
-            to="/estudiante/grades" 
+          <Link
+            to="/estudiante/grades"
             className="text-primary-600 hover:text-primary-700 text-sm font-medium"
           >
             Ver todas
           </Link>
         </div>
-        
+
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (

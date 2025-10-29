@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../auth/store/authStore';
-import { profileService } from '../services/apiTeacher';
+import { perfilService } from '../services/apiTeacher';
 
 const Profile = () => {
     const { user } = useAuthStore();
@@ -96,7 +96,7 @@ const Profile = () => {
             }
             
             // Llamar al servicio para actualizar perfil
-            await profileService.updateProfile(updateData);
+            await perfilService.updateProfile(updateData);
             
             toast.success('Perfil actualizado correctamente');
             setIsEditing(false);

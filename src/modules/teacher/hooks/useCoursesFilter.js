@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCourses } from '../services/apiTeacher';
-import { cursosService } from '../../admin/services/apiAdmin';
+import { cursosService } from '../services/apiTeacher';
 import toast from 'react-hot-toast';
 
 const useCoursesFilter = () => {
@@ -20,8 +19,8 @@ const useCoursesFilter = () => {
     const fetchCourses = async () => {
         setLoading(true);
         try {
-            const response = await getCourses();
-            setCourses(response.data || []);
+            const response = await cursosService.getCourses();
+            setCourses(response || []);
         } catch (error) {
             console.error('Error al cargar cursos:', error);
             toast.error('No se pudieron cargar los cursos');
@@ -32,10 +31,10 @@ const useCoursesFilter = () => {
 
     const fetchAllCycles = async () => {
         try {
-            const response = await cursosService.getCiclos();
-            setAllCycles(response || []);
+            const data = await cursosService.getCiclos();
+            setAllCycles(data);
         } catch (error) {
-            console.error('Error al cargar ciclos:', error);
+            console.error('Error fetching cycles:', error);
             toast.error('Error al cargar los ciclos');
         }
     };

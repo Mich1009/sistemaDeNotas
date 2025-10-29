@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Filter, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../auth/store/authStore';
-import { getCourses } from '../services/apiTeacher';
+import { cursosService } from '../services/apiTeacher';
 
 const Schedule = () => {
     const { user } = useAuthStore();
@@ -49,7 +49,7 @@ const Schedule = () => {
     const fetchCourses = async () => {
         try {
             setLoading(true);
-            const response = await getCourses();
+            const response = await cursosService.getCourses();
             setCourses(response.data || []);
             setLoading(false);
         } catch (error) {

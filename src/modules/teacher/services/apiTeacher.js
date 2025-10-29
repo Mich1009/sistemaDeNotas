@@ -1,112 +1,58 @@
 import api from "../../../shared/utils/axiosInstance";
 
-// Función principal para obtener cursos
-export const getCourses = async (params = {}) => {
-    const response = await api.get('/teacher/courses', { params });
-    return response;
+// ============================================================================
+// SERVICIOS DE DASHBOARD (Dashboard)
+// ============================================================================
+export const dashboardService = {
+    // Obtener datos del dashboard del docente
+    getDashboard: async () => {
+        const response = await api.get('/teacher/dashboard');
+        return response.data;
+    }
 };
 
-// Función para obtener estudiantes con notas
-export const getStudentsWithGrades = async (courseId) => {
-    const response = await api.get(`/teacher/courses/${courseId}/students-with-grades`);
-    return response;
-};
-
-// Servicios académicos (para docente)
-export const academicService = {
+// ============================================================================
+// SERVICIOS DE CURSOS (Mis Cursos)
+// ============================================================================
+export const cursosService = {
+    // Obtener todos los cursos del docente
     getCourses: async (params = {}) => {
         const response = await api.get('/teacher/courses', { params });
         return response.data;
     },
 
+    // Obtener ciclos donde el docente tiene cursos asignados
+    getCiclos: async () => {
+        const response = await api.get('/teacher/ciclos');
+        return response.data;
+    },
+
+    // Obtener un curso específico por ID
     getCourseById: async (courseId) => {
         const response = await api.get(`/teacher/courses/${courseId}`);
         return response.data;
     },
 
-    updateCourse: async (courseId, courseData) => {
-        const response = await api.put(`/teacher/courses/${courseId}`, courseData);
-        return response.data;
-    },
-
+    // Obtener estudiantes de un curso
     getStudentsByCourse: async (courseId) => {
         const response = await api.get(`/teacher/courses/${courseId}/students`);
         return response.data;
     },
-};
 
-// Servicios de perfil (para docente)
-export const profileService = {
-    getProfile: async () => {
-        const response = await api.get('/teacher/profile');
-        return response.data;
-    },
-    
-    updateProfile: async (profileData) => {
-        const response = await api.put('/teacher/profile', profileData);
-        return response.data;
-    },
-    
-    changePassword: async (passwordData) => {
-        const response = await api.put('/teacher/profile/password', passwordData);
+    // Obtener estudiantes con sus notas
+    getStudentsWithGrades: async (courseId) => {
+        const response = await api.get(`/teacher/courses/${courseId}/students-with-grades`);
         return response.data;
     }
 };
 
-// Servicios de calificaciones (para docente)
-export const gradesService = {
-    getGradesByCourse: async (courseId, params = {}) => {
-        const response = await api.get(`/teacher/courses/${courseId}/grades`, { params });
-        return response.data;
-    },
-
-    createGrade: async (gradeData) => {
-        const response = await api.post('/teacher/grades', gradeData);
-        return response.data;
-    },
-
-    updateGrade: async (gradeId, gradeData) => {
-        const response = await api.put(`/teacher/grades/${gradeId}`, gradeData);
-        return response.data;
-    },
-
-    getStudentGrades: async (studentId, courseId) => {
-        const response = await api.get(`/teacher/students/${studentId}/courses/${courseId}/grades`);
-        return response.data;
-    },
+// ============================================================================
+// SERVICIOS DE CALIFICACIONES (Calificaciones)
+// ============================================================================
+export const calificacionesService = {
     // Actualización masiva de notas
     updateGradesBulk: async (courseId, gradesData) => {
         const response = await api.post(`/teacher/courses/${courseId}/grades/bulk`, gradesData);
-        return response.data;
-    },
-
-    // Obtener estructura de notas de un estudiante
-    getStudentGradeStructure: async (courseId, studentId) => {
-        const response = await api.get(`/teacher/courses/${courseId}/students/${studentId}/grade-structure`);
-        return response.data;
-    },
-
-    // Obtener promedio final de un estudiante
-    getStudentFinalGrade: async (courseId, studentId) => {
-        const response = await api.get(`/teacher/courses/${courseId}/students/${studentId}/final-grade`);
-        return response.data;
-    },
-
-    // Obtener todos los promedios finales del curso
-    getAllFinalGrades: async (courseId) => {
-        const response = await api.get(`/teacher/courses/${courseId}/all-final-grades`);
-        return response.data;
-    },
-
-    // Calcular promedios automáticamente para todo el curso
-    calculateCourseAverages: async (courseId) => {
-        const response = await api.post(`/teacher/courses/${courseId}/calcular-promedios`);
-        return response.data;
-    },
-
-    // Obtener historial de una nota
-    getGradeHistory: async (gradeId) => {
-        const response = await api.get(`/teacher/notas/${gradeId}/historial`);
         return response.data;
     },
 
@@ -118,22 +64,19 @@ export const gradesService = {
         const response = await api.post(`/teacher/courses/${courseId}/grades/upload-excel`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
-            },
+            }
         });
         return response.data;
     },
 
-    // Descargar plantilla Excel
+    // Descargar plantilla de Excel
     downloadExcelTemplate: async (courseId) => {
         const response = await api.get(`/teacher/courses/${courseId}/grades/excel-template`, {
-            responseType: 'blob',
+            responseType: 'blob'
         });
         return response.data;
-    }
-};
+    },
 
-// Servicios de descripciones de evaluaciones
-export const evaluationDescriptionService = {
     // Obtener todas las descripciones de evaluaciones de un curso
     getEvaluationDescriptions: async (courseId) => {
         const response = await api.get(`/teacher/courses/${courseId}/evaluation-descriptions`);
@@ -153,61 +96,74 @@ export const evaluationDescriptionService = {
     }
 };
 
-// Servicios de tareas/asignaciones (para docente)
-export const assignmentService = {
-    getAssignments: async (params = {}) => {
-        const response = await api.get('/teacher/assignments', { params });
+// ============================================================================
+// SERVICIOS DE REPORTES (Reportes)
+// ============================================================================
+export const reportesService = {
+    // Obtener reporte de rendimiento
+    getPerformanceReport: async (params = {}) => {
+        const response = await api.get('/teacher/reports/performance', { params });
         return response.data;
     },
 
-    createAssignment: async (assignmentData) => {
-        const response = await api.post('/teacher/assignments', assignmentData);
+    // Obtener años disponibles
+    getAvailableYears: async () => {
+        const response = await api.get('/teacher/reports/years');
         return response.data;
     },
 
-    updateAssignment: async (assignmentId, assignmentData) => {
-        const response = await api.put(`/teacher/assignments/${assignmentId}`, assignmentData);
+    // Obtener ciclos disponibles
+    getAvailableCycles: async (año = null) => {
+        const params = año ? { año } : {};
+        const response = await api.get('/teacher/reports/cycles', { params });
         return response.data;
     },
 
-    deleteAssignment: async (assignmentId) => {
-        const response = await api.delete(`/teacher/assignments/${assignmentId}`);
+    // Obtener cursos disponibles
+    getAvailableCourses: async (año = null, ciclo_id = null) => {
+        const params = {};
+        if (año) params.año = año;
+        if (ciclo_id) params.ciclo_id = ciclo_id;
+        const response = await api.get('/teacher/reports/courses', { params });
         return response.data;
     },
 
-    getAssignmentSubmissions: async (assignmentId) => {
-        const response = await api.get(`/teacher/assignments/${assignmentId}/submissions`);
-        return response.data;
-    },
-};
-
-// Servicios de reportes y estadísticas
-export const reportsService = {
-    getCourseReport: async (courseId) => {
-        const response = await api.get(`/teacher/courses/${courseId}/report`);
+    // Exportar reportes a Excel
+    exportReports: async (params = {}) => {
+        const response = await api.get('/teacher/reports/export', { 
+            params,
+            responseType: 'blob'
+        });
         return response.data;
     },
 
-    getTeacherStatistics: async () => {
-        const response = await api.get('/teacher/statistics');
+    // Obtener estudiantes desaprobados de un curso
+    getFailedStudents: async (cursoId) => {
+        const response = await api.get(`/teacher/reports/failed-students/${cursoId}`);
         return response.data;
     }
 };
 
-// Servicios de configuración
-export const configService = {
-    getGradeCalculationConfig: async (courseId) => {
-        const response = await api.get(`/teacher/courses/${courseId}/grade-config`);
+// ============================================================================
+// SERVICIOS DE PERFIL (Mi Perfil)
+// ============================================================================
+export const perfilService = {
+    // Obtener perfil del docente
+    getProfile: async () => {
+        const response = await api.get('/teacher/profile');
         return response.data;
     },
-
-    updateGradeCalculationConfig: async (courseId, configData) => {
-        const response = await api.put(`/teacher/courses/${courseId}/grade-config`, configData);
+    
+    // Actualizar perfil del docente
+    updateProfile: async (profileData) => {
+        const response = await api.put('/teacher/profile', profileData);
         return response.data;
     }
 };
 
-// Funciones de utilidad para el frontend
+// ============================================================================
+// UTILIDADES PARA CALIFICACIONES
+// ============================================================================
 export const gradeUtils = {
     // Calcular promedio basado en las notas
     calculateAverage: (notas = []) => {
@@ -240,3 +196,4 @@ export const gradeUtils = {
         return nota >= 0 && nota <= 20;
     }
 };
+

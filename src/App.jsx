@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './modules/auth/store/authStore';
+import './index.css'
 
 // Componentes de autenticación
 import Login from './modules/auth/pages/Login';
@@ -10,7 +11,6 @@ import PasswordReset from './modules/auth/pages/Recuperacion';
 
 // Página unificada para todos los roles
 import DashboardPage from './shared/pages/DashboardPage';
-
 function App() {
     const { isAuthenticated, user } = useAuthStore();
 
@@ -48,7 +48,7 @@ function App() {
                 <Route path="/dashboard" element={<DashboardRedirect />} />
 
                 {/* Rutas protegidas - Página unificada para todos los roles */}
-                
+
                 {/* Rutas de Administrador */}
                 <Route
                     path="/admin/*"

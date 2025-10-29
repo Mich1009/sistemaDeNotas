@@ -8,7 +8,18 @@ export const dashboardService = {
     },
 
     getEstadisticasGenerales: async () => {
-        const response = await api.get('/admin/reportes/estadisticas-generales');
+        const response = await api.get('/admin/estadisticas-generales');
+        return response.data;
+    },
+
+    getGradeDistribution: async () => {
+        const response = await api.get('/admin/grade-distribution');
+        return response.data;
+    },
+
+    getEstudiantesPorCiclo: async (year = null) => {
+        const params = year ? { year } : {};
+        const response = await api.get('/admin/estudiantes-por-ciclo', { params });
         return response.data;
     }
 };
@@ -68,13 +79,8 @@ export const docentesService = {
         return response.data;
     },
 
-    getDocenteCursos: async (docenteId) => {
-        const response = await api.get(`/admin/docentes/${docenteId}/cursos`);
-        return response.data;
-    },
-
     assignCursoToDocente: async (docenteId, cursoId) => {
-        const response = await api.post(`/admin/docentes/${docenteId}/cursos/${cursoId}`);
+        const response = await api.post(`/admin/docentes/${docenteId}/assign-curso`, { curso_id: cursoId });
         return response.data;
     }
 };
@@ -124,43 +130,7 @@ export const cursosService = {
     },
 };
 
-// Servicios de Notas
-export const notasService = {
-    getNotasEstudiante: async (estudianteId, params = {}) => {
-        const response = await api.get(`/admin/notas/estudiante/${estudianteId}`, { params });
-        return response.data;
-    },
 
-    getNotasCurso: async (cursoId, params = {}) => {
-        const response = await api.get(`/admin/notas/curso/${cursoId}`, { params });
-        return response.data;
-    },
-
-    registrarNota: async (notaData) => {
-        const response = await api.post('/admin/notas', notaData);
-        return response.data;
-    },
-
-    actualizarNota: async (notaId, notaData) => {
-        const response = await api.put(`/admin/notas/${notaId}`, notaData);
-        return response.data;
-    },
-
-    eliminarNota: async (notaId) => {
-        const response = await api.delete(`/admin/notas/${notaId}`);
-        return response.data;
-    },
-
-    getHistorialNota: async (notaId) => {
-        const response = await api.get(`/admin/notas/${notaId}/historial`);
-        return response.data;
-    },
-
-    getPromediosEstudiante: async (estudianteId) => {
-        const response = await api.get(`/admin/notas/estudiante/${estudianteId}/promedios`);
-        return response.data;
-    }
-};
 
 // Servicios de Matrículas
 export const matriculasService = {
@@ -190,76 +160,43 @@ export const matriculasService = {
 
 // Servicios de Reportes
 export const reportesService = {
-    getRendimientoEstudiantes: async (params = {}) => {
-        const response = await api.get('/admin/reportes/rendimiento-estudiantes', { params });
+    getEstructuraJerarquica: async (año = null) => {
+        const params = año ? `?año=${año}` : '';
+        const response = await api.get(`/admin/reportes/jerarquicos/carreras-ciclos${params}`);
         return response.data;
     },
 
-    getRendimientoPorCurso: async (params = {}) => {
-        const response = await api.get('/admin/reportes/rendimiento-por-curso', { params });
+    getPromediosPorCiclo: async (filtros = {}) => {
+        const params = new URLSearchParams();
+        if (filtros.año) params.append('año', filtros.año);
+        if (filtros.carrera_id) params.append('carrera_id', filtros.carrera_id);
+
+        const response = await api.get(`/admin/reportes/promedios/por-ciclo?${params}`);
         return response.data;
     },
 
-    getEstudiantesPorCiclo: async (año = null) => {
-        const params = año ? { año } : {};
-        const response = await api.get('/admin/reportes/estudiantes-por-ciclo', { params });
+    getAñosDisponibles: async () => {
+        const response = await api.get('/admin/reportes/filtros/años-disponibles');
         return response.data;
     },
 
-    exportarEstudiantesExcel: async (params = {}) => {
-        const response = await api.get('/admin/reportes/exportar/estudiantes', { 
-            params,
+    exportarNotasTodosCiclos: async (formato = 'excel') => {
+        const response = await api.get(`/admin/reportes/exportar/notas-todos-ciclos?formato=${formato}`, {
             responseType: 'blob'
         });
         return response.data;
     },
 
-    exportarDocentesExcel: async () => {
-        const response = await api.get('/admin/reportes/exportar/docentes', {
+    exportarNotasPorCiclo: async (cicloId, formato = 'excel') => {
+        const response = await api.get(`/admin/reportes/exportar/notas-por-ciclo/${cicloId}?formato=${formato}`, {
             responseType: 'blob'
         });
         return response.data;
     },
 
-    exportarNotasExcel: async (params = {}) => {
-        const response = await api.get('/admin/reportes/exportar/notas', { 
-            params,
-            responseType: 'blob'
-        });
+    getEstudiantesPorCurso: async (cursoId, estado = null) => {
+        const params = estado ? `?estado=${estado}` : '';
+        const response = await api.get(`/admin/reportes/curso/${cursoId}/estudiantes${params}`);
         return response.data;
     }
 };
-
-// Servicios de rendmiento de sistema
-export const sistemaService = {
-    getSystemHealth: async () => {
-        const response = await api.get('/admin/performance/system-health');
-        return response.data;
-    },
-
-    getPerformanceMetrics: async () => {
-        const response = await api.get('/admin/performance/performance-metrics');
-        return response.data;
-    },
-
-    getActivityTimeline: async (days = 7) => {
-        const response = await api.get(`/admin/performance/activity-timeline?days=${days}`);
-        return response.data;
-    },
-
-    getAllMetrics: async () => {
-        const [systemHealth, performanceMetrics, activityTimeline] = await Promise.all([
-            sistemaService.getSystemHealth(),
-            sistemaService.getPerformanceMetrics(),
-            sistemaService.getActivityTimeline()
-        ]);
-
-        return {
-            systemHealth,
-            performanceMetrics,
-            activityTimeline
-        };
-    }
-};
-
-// Exportar todos los servicios

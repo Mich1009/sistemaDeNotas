@@ -11,7 +11,7 @@ import {
   Bell,
   AlertCircle
 } from 'lucide-react';
-import { academicService } from '../services/apiStudent';
+import { scheduleService } from '../services/apiStudent';
 import toast from 'react-hot-toast';
 
 const Schedule = () => {
@@ -27,7 +27,7 @@ const Schedule = () => {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const response = await academicService.getCourses();
+      const response = await scheduleService.getSchedule();
       console.log('Courses response:', response); // Debug log
       setCourses(response || []);
     } catch (error) {

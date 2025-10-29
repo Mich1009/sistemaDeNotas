@@ -1,55 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Users,
-    GraduationCap,
-    BookOpen,
-    Award,
-    Plus,
-    FileText,
-    Settings,
-    TrendingUp,
-    Calendar,
-    RefreshCw,
-    Filter,
-    BarChart3,
-    UserPlus
-} from 'lucide-react';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Users, GraduationCap, BookOpen, FileText, Settings, TrendingUp, Calendar, RefreshCw, BarChart3, UserPlus } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Bar, Pie } from 'react-chartjs-2';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useDashboard } from '../hooks/useDashboard';
+import { dashboardService } from '../services/apiAdmin';
 
 // Registrar componentes de Chart.js
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const Dashboard = () => {
-    const {
-        dashboardData,
-        estadisticasGenerales,
-        estudiantesPorCiclo,
-        selectedYear,
-        availableYears,
-        loading,
-        error,
-        refreshDashboard,
-        changeYear
-    } = useDashboard();
+    const { dashboardData, estadisticasGenerales, estudiantesPorCiclo, selectedYear, availableYears, loading, error, refreshDashboard, changeYear } = useDashboard();
+    const [gradeDistribution, setGradeDistribution] = useState([]);
+    const [gradeLoading, setGradeLoading] = useState(false);
+
+    // Cargar distribución de calificaciones
+    useEffect(() => {
+        loadGradeDistribution();
+    }, []);
+
+    const loadGradeDistribution = async () => {
+        try {
+            setGradeLoading(true);
+            const data = await dashboardService.getGradeDistribution();
+            setGradeDistribution(data);
+        } catch (error) {
+            console.error('Error loading grade distribution:', error);
+            toast.error('Error al cargar la distribución de calificaciones');
+        } finally {
+            setGradeLoading(false);
+        }
+    };
 
     // Configuración del gráfico de barras
     const chartData = {
@@ -193,17 +175,13 @@ const Dashboard = () => {
     );
 
     const QuickAction = ({ title, description, icon: Icon, link, color }) => (
-        <Link to={link} className="block">
-            <div className="card p-6 hover:shadow-lg transition-shadow cursor-pointer">
-                <div className="flex items-start space-x-4">
-                    <div className={`p-3 rounded-full ${color}`}>
-                        <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-secondary-900">{title}</h3>
-                        <p className="text-sm text-secondary-600 mt-1">{description}</p>
-                    </div>
-                </div>
+        <Link to={link} className="card p-3 hover:shadow-lg transition-shadow cursor-pointer flex items-center space-x-2">
+            <div className={`p-3 rounded-full ${color}`}>
+                <Icon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+                <h3 className="font-semibold text-secondary-900">{title}</h3>
+                <p className="text-sm text-secondary-600 mt-1">{description}</p>
             </div>
         </Link>
     );
@@ -213,15 +191,13 @@ const Dashboard = () => {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-secondary-900">Dashboard Administrativo</h1>
-                <p className="text-secondary-600 mt-2">
-                    Gestiona usuarios, cursos y supervisa el sistema educativo
-                </p>
+                <p className="text-secondary-600 text-sm">Gestiona usuarios, cursos y supervisa el sistema educativo</p>
             </div>
 
             {/* Estadísticas principales */}
             <div>
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xl font-semibold text-gray-800">Estadísticas Principales</h2>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-gray-800">Estadísticas Principales</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
@@ -258,7 +234,7 @@ const Dashboard = () => {
             {/* Gráfico de Estudiantes por Ciclo */}
             <div className="bg-white rounded-lg shadow-md p-4">
                 <div className='flex items-center justify-between'>
-                    <h2 className="text-xl font-semibold text-gray-800">Estudiantes por Ciclo Académico</h2>
+                    <h2 className="text-base font-semibold text-gray-800">Estudiantes por Ciclo Académico</h2>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-gray-500" />
@@ -282,120 +258,168 @@ const Dashboard = () => {
                         </button>
                     </div>
                 </div>
-                {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                ) : estudiantesPorCiclo.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Gráfico */}
-                        <div className="flex-1">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ height: 300, }}>
+                    {/* Gráfico */}
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : estudiantesPorCiclo.length > 0 ? (
+                        <div className="flex-1" style={{ height: '100%' }}>
                             <Bar data={chartData} options={chartOptions} />
                         </div>
-
-                        {/* Contadores y Análisis */}
-                        <div className="space-y-3">
-                            {/* Resumen por ciclos */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Resumen por Ciclos</h3>
-                                <div className="flex gap-3">
-                                    {estudiantesPorCiclo.map((item, index) => (
-                                        <div key={item.ciclo} className="text-center p-3 bg-gray-50 rounded-lg flex-1">
-                                            <div
-                                                className="w-4 h-4 rounded-full mx-auto mb-2"
-                                                style={{
-                                                    backgroundColor: chartData.datasets[0].backgroundColor[index]
-                                                }}
-                                            ></div>
-                                            <div className="text-sm font-medium text-gray-600">Ciclo {item.ciclo}</div>
-                                            <div className="text-lg font-bold text-gray-800">{item.numero_estudiantes}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Análisis */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Análisis de Distribución</h3>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-2xl font-bold text-blue-600">{totalEstudiantesCiclos}</div>
-                                        <div className="text-blue-700 text-sm">Total de Estudiantes</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-xl font-bold text-green-600">
-                                            Ciclo {cicloConMasEstudiantes.ciclo}
-                                        </div>
-                                        <div className="text-green-700 text-sm">Ciclo con más estudiantes</div>
-                                        <div className="text-xs text-gray-600">({cicloConMasEstudiantes.numero_estudiantes} estudiantes)</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-xl font-bold text-purple-600">{promedioEstudiantesPorCiclo}</div>
-                                        <div className="text-purple-700 text-sm">Promedio por ciclo</div>
-                                    </div>
-                                </div>
-                            </div>
+                    ) : (
+                        <div className="text-center py-8 text-gray-500">
+                            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No hay datos disponibles para el año {selectedYear}</p>
                         </div>
-                    </div>
-                ) : (
-                    <div className="text-center py-8 text-gray-500">
-                        <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No hay datos disponibles para el año {selectedYear}</p>
-                    </div>
-                )}
+                    )}
+
+                    {/* Distribucion de calificaciones */}
+                    <aside className='flex-1' style={{ height: '100%' }}>
+                        <h3 className="text-base font-semibold text-gray-800 mb-2">Distribución de Calificaciones</h3>
+                        {gradeLoading ? (
+                            <div className="flex items-center justify-center h-48">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            </div>
+                        ) : gradeDistribution.length > 0 ? (
+                            <div className="flex-1" style={{ height: 'calc(100% - 3rem)' }}>
+                                <Pie
+                                    data={{
+                                        labels: gradeDistribution.map(item => `${item.categoria} - ${item.cantidad}`),
+                                        datasets: [{
+                                            data: gradeDistribution.map(item => item.cantidad),
+                                            backgroundColor: [
+                                                '#10b981', // Verde para Excelente
+                                                '#3b82f6', // Azul para Bueno
+                                                '#f59e0b', // Amarillo para Regular
+                                                '#ef4444'  // Rojo para Deficiente
+                                            ],
+                                            borderWidth: 2,
+                                            borderColor: '#ffffff',
+                                        }]
+                                    }}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                position: 'bottom',
+                                                labels: {
+                                                    font: { size: 10 },
+                                                    padding: 10
+                                                }
+                                            },
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: function (context) {
+                                                        const item = gradeDistribution[context.dataIndex];
+                                                        return `${item.categoria}: ${item.cantidad} (${item.porcentaje}%)`;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-500">
+                                <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No hay datos de calificaciones disponibles</p>
+                            </div>
+                        )}
+                    </aside>
+                </div>
             </div>
             {/* Acciones rápidas */}
-            <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Acciones Rápidas</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <QuickAction
-                        title="Crear Usuario"
-                        description="Registrar nuevo estudiante, docente o administrador"
-                        icon={UserPlus}
-                        link="/admin/users/create"
-                        color="bg-primary-500"
-                    />
-                    <QuickAction
-                        title="Gestionar Cursos"
-                        description="Crear, editar y asignar cursos"
-                        icon={BookOpen}
-                        link="/admin/courses"
-                        color="bg-secondary-500"
-                    />
-                    <QuickAction
-                        title="Ver Reportes"
-                        description="Generar reportes de notas y estadísticas"
-                        icon={BarChart3}
-                        link="/admin/reports"
-                        color="bg-green-500"
-                    />
-                    <QuickAction
-                        title="Configuración"
-                        description="Configurar parámetros del sistema"
-                        icon={Settings}
-                        link="/admin/settings"
-                        color="bg-gray-500"
-                    />
-                    <QuickAction
-                        title="Exportar Datos"
-                        description="Exportar información en Excel o PDF"
-                        icon={FileText}
-                        link="/admin/export"
-                        color="bg-indigo-500"
-                    />
-                    <QuickAction
-                        title="Estadísticas"
-                        description="Ver métricas detalladas del sistema"
-                        icon={TrendingUp}
-                        link="/admin/analytics"
-                        color="bg-red-500"
-                    />
-                </div>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+                <aside className="space-y-2">
+                    {/* Resumen por ciclos */}
+                    <h3 className="text-base font-semibold text-gray-700">Resumen por Ciclos</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                        {estudiantesPorCiclo.map((item, index) => (
+                            <div key={item.ciclo} className="text-center p-3 card rounded-lg flex-1">
+                                <div
+                                    className="w-4 h-4 rounded-full mx-auto mb-2"
+                                    style={{
+                                        backgroundColor: chartData.datasets[0].backgroundColor[index]
+                                    }}
+                                ></div>
+                                <div className="text-sm font-medium text-gray-600">Ciclo {item.ciclo}</div>
+                                <div className="text-lg font-bold text-gray-800">{item.numero_estudiantes}</div>
+                            </div>
+                        ))}
+
+                        {/* Distribucion de estudiantes */}
+                        <div className="text-center p-3 card rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{totalEstudiantesCiclos}</div>
+                            <div className="text-blue-700 text-sm">Total de Estudiantes</div>
+                        </div>
+                        <div className="text-center p-3 card rounded-lg">
+                            <div className="text-xl font-bold text-green-600">
+                                Ciclo {cicloConMasEstudiantes.ciclo}
+                            </div>
+                            <div className="text-green-700 text-sm">Ciclo con más estudiantes</div>
+                            <div className="text-xs text-gray-600">({cicloConMasEstudiantes.numero_estudiantes} estudiantes)</div>
+                        </div>
+                        <div className="text-center p-3 card rounded-lg">
+                            <div className="text-xl font-bold text-purple-600">{promedioEstudiantesPorCiclo}</div>
+                            <div className="text-purple-700 text-sm">Promedio por ciclo</div>
+                        </div>
+                    </div>
+                </aside>
+                <aside className='space-y-2'>
+                    <h2 className="text-base font-semibold text-gray-700">Acciones Rápidas</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <QuickAction
+                            title="Crear Usuario"
+                            description="Registrar nuevo estudiante, docente"
+                            icon={UserPlus}
+                            link="/admin/users/create"
+                            color="bg-primary-500"
+                        />
+                        <QuickAction
+                            title="Gestionar Cursos"
+                            description="Crear, editar y asignar cursos"
+                            icon={BookOpen}
+                            link="/admin/courses"
+                            color="bg-secondary-500"
+                        />
+                        <QuickAction
+                            title="Ver Reportes"
+                            description="Generar reportes de notas y estadísticas"
+                            icon={BarChart3}
+                            link="/admin/reports"
+                            color="bg-green-500"
+                        />
+                        <QuickAction
+                            title="Configuración"
+                            description="Configurar parámetros del sistema"
+                            icon={Settings}
+                            link="/admin/settings"
+                            color="bg-gray-500"
+                        />
+                        <QuickAction
+                            title="Exportar Datos"
+                            description="Exportar información en Excel o PDF"
+                            icon={FileText}
+                            link="/admin/export"
+                            color="bg-indigo-500"
+                        />
+                        <QuickAction
+                            title="Estadísticas"
+                            description="Ver métricas detalladas del sistema"
+                            icon={TrendingUp}
+                            link="/admin/analytics"
+                            color="bg-red-500"
+                        />
+                    </div>
+                </aside>
             </div>
 
             {/* Actividad reciente */}
             <div>
-                <h2 className="text-xl font-semibold text-secondary-900 mb-4">Actividad Reciente</h2>
+                <h2 className="text-base font-semibold text-secondary-900 mb-2">Actividad Reciente</h2>
                 <div className="card">
                     <div className="p-6">
                         {loading ? (

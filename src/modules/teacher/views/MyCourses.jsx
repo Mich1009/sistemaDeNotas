@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCourses, academicService } from '../services/apiTeacher';
-import { cursosService } from '../../admin/services/apiAdmin';
+import { cursosService } from '../services/apiTeacher';
 import useAuthStore from '../../auth/store/authStore';
 import toast from 'react-hot-toast';
 import CursosList from '../components/CursosList';
@@ -29,8 +28,8 @@ const MyCourses = () => {
     const fetchCourses = async () => {
         setLoading(true);
         try {
-            const response = await getCourses();
-            setCourses(response.data || []);
+            const response = await cursosService.getCourses();
+            setCourses(response || []);
         } catch (error) {
             console.error('Error al cargar cursos:', error);
             toast.error('No se pudieron cargar los cursos');
@@ -52,7 +51,7 @@ const MyCourses = () => {
     const handleViewStudents = async (courseId) => {
         setLoading(true);
         try {
-            const data = await academicService.getStudentsByCourse(courseId);
+            const data = await cursosService.getStudentsByCourse(courseId);
             setStudents(data);
             setSelectedCourse(courses.find(course => course.id === courseId));
             setShowStudents(true);

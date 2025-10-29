@@ -24,7 +24,6 @@ const Docentes = () => {
         createDocente, 
         updateDocente, 
         deleteDocente,
-        searchDocenteByDni,
         getDocenteCursos,
         refreshDocentes 
     } = useDocentes();

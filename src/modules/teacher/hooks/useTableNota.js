@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 
 const useTableNota = () => {
     const [activeTab, setActiveTab] = useState('evaluaciones');
@@ -52,6 +54,54 @@ const useTableNota = () => {
         return !isNaN(numValue) && numValue >= 0 && numValue <= 20;
     };
 
+    // Función para exportar promedios a Excel
+    const handleExportAverages = (courses, selectedCourse, filteredStudents, calculateStudentAverage) => {
+        try {
+            // Obtener información del curso
+            const course = courses.find(c => c.id === selectedCourse);
+            if (!course) {
+                toast.error('No se encontró información del curso');
+                return;
+            }
+
+            // Preparar datos para el Excel con el nuevo formato
+            const excelData = filteredStudents.map((student, index) => {
+                const promedio = calculateStudentAverage(student.id, 'all');
+                return {
+                    'N°': index + 1,
+                    'Apellidos y Nombres': `${student.last_name}, ${student.first_name}`,
+                    'Promedio General': promedio || '-'
+                };
+            });
+
+            // Crear libro de trabajo
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // Ajustar ancho de columnas
+            const colWidths = [
+                { wch: 5 },  // N°
+                { wch: 35 }, // Apellidos y Nombres
+                { wch: 15 }  // Promedio General
+            ];
+            ws['!cols'] = colWidths;
+
+            // Agregar hoja al libro
+            XLSX.utils.book_append_sheet(wb, ws, 'Promedios');
+
+            // Generar nombre del archivo
+            const fileName = `Promedios_${course.nombre.replace(/\s+/g, '_')}_${course.ciclo_año || new Date().getFullYear()}.xlsx`;
+
+            // Descargar archivo
+            XLSX.writeFile(wb, fileName);
+            
+            toast.success('✅ Archivo Excel exportado exitosamente');
+        } catch (error) {
+            console.error('Error al exportar promedios:', error);
+            toast.error('Error al exportar el archivo Excel');
+        }
+    };
+
     const resetSearch = () => {
         setSearchTerm('');
     };
@@ -72,6 +122,7 @@ const useTableNota = () => {
         getStudentStatus,
         formatGradeInput,
         validateGradeInput,
+        handleExportAverages,
         resetSearch,
         resetTab
     };
