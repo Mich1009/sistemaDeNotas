@@ -1,9 +1,22 @@
 import React from 'react'
 import { Award, Calendar, User, CheckCircle, AlertCircle, Clock, Download } from 'lucide-react';
+import { useGrades } from '../hooks/useGrades';
+import InfoNota from './InfoNota';
 
 const GradeCard = ({ curso, gradeUtils, handlePrintCourse }) => {
+    const {
+        isModalOpen,
+        selectedGrade,
+        gradeDetails,
+        loading,
+        error,
+        openGradeModal,
+        closeGradeModal,
+        createGradeInfo,
+        handleGradeClick
+    } = useGrades();
     
-    const cursoStats = gradeUtils.calculateGradesStatistics(curso.notas);
+    const cursoStats = gradeUtils.calculateCourseStatistics(curso.notas);
 
     return (
         <div className="bg-white rounded-lg shadow-md transition-shadow border border-gray-200">
@@ -41,7 +54,7 @@ const GradeCard = ({ curso, gradeUtils, handlePrintCourse }) => {
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 grid grid-cols-4 gap-4 text-center">
                 <div className='flex items-center justify-center gap-1'>
                     <p className="text-2xl font-bold text-blue-600">{cursoStats.total}</p>
-                    <p className="text-xs text-gray-600">Total Evaluaciones</p>
+                    <p className="text-xs text-gray-600">Total Notas</p>
                 </div>
                 <div className='flex items-center justify-center gap-1'>
                     <p className="text-2xl font-bold text-green-600">{cursoStats.aprobados}</p>
@@ -70,14 +83,30 @@ const GradeCard = ({ curso, gradeUtils, handlePrintCourse }) => {
                             <div>
                                 <h5 className="text-sm font-medium text-gray-700">Evaluaciones</h5>
                                 <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                                    {Array.from({ length: 8 }, (_, i) => (
-                                        <div key={i} className="text-center p-2 bg-blue-50 rounded border border-blue-100">
-                                            <p className="text-xs text-blue-700 mb-1">E{i + 1}</p>
-                                            <p className="text-sm font-bold text-gray-900">
-                                                {nota[`evaluacion${i + 1}`] || '--'}
-                                            </p>
-                                        </div>
-                                    ))}
+                                    {Array.from({ length: 8 }, (_, i) => {
+                                        const gradeValue = nota[`evaluacion${i + 1}`];
+                                        const tipoEvaluacion = `evaluacion${i + 1}`;
+                                        
+                                        return (
+                                            <div 
+                                                key={i} 
+                                                className={`text-center p-2 bg-blue-50 rounded border border-blue-100 transition-all duration-200 ${
+                                                    gradeValue ? 'cursor-pointer hover:bg-blue-100' : 'cursor-default'
+                                                }`}
+                                                onClick={() => handleGradeClick(
+                                                    curso.curso_id || nota.curso_id,
+                                                    tipoEvaluacion,
+                                                    gradeValue,
+                                                    curso.curso_nombre
+                                                )}
+                                            >
+                                                <p className="text-xs text-blue-700 mb-1">E{i + 1}</p>
+                                                <p className="text-sm font-bold text-gray-900">
+                                                    {gradeValue || '--'}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -85,14 +114,30 @@ const GradeCard = ({ curso, gradeUtils, handlePrintCourse }) => {
                             <div>
                                 <h5 className="text-sm font-medium text-gray-700">Prácticas</h5>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                    {Array.from({ length: 4 }, (_, i) => (
-                                        <div key={i} className="text-center p-2 bg-green-50 rounded border border-green-200">
-                                            <p className="text-xs text-green-700 mb-1">P{i + 1}</p>
-                                            <p className="text-sm font-bold text-gray-900">
-                                                {nota[`practica${i + 1}`] || '--'}
-                                            </p>
-                                        </div>
-                                    ))}
+                                    {Array.from({ length: 4 }, (_, i) => {
+                                        const gradeValue = nota[`practica${i + 1}`];
+                                        const tipoEvaluacion = `practica${i + 1}`;
+                                        
+                                        return (
+                                            <div 
+                                                key={i} 
+                                                className={`text-center p-2 bg-green-50 rounded border border-green-200 transition-all duration-200 ${
+                                                    gradeValue ? 'cursor-pointer hover:bg-green-100' : 'cursor-default'
+                                                }`}
+                                                onClick={() => handleGradeClick(
+                                                    curso.curso_id || nota.curso_id,
+                                                    tipoEvaluacion,
+                                                    gradeValue,
+                                                    curso.curso_nombre
+                                                )}
+                                            >
+                                                <p className="text-xs text-green-700 mb-1">P{i + 1}</p>
+                                                <p className="text-sm font-bold text-gray-900">
+                                                    {gradeValue || '--'}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -100,14 +145,30 @@ const GradeCard = ({ curso, gradeUtils, handlePrintCourse }) => {
                             <div>
                                 <h5 className="text-sm font-medium text-gray-700">Parciales</h5>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {Array.from({ length: 2 }, (_, i) => (
-                                        <div key={i} className="text-center p-2 bg-purple-50 rounded border border-purple-100">
-                                            <p className="text-xs text-purple-700 mb-1">Parc{i + 1}</p>
-                                            <p className="text-sm font-bold text-gray-900">
-                                                {nota[`parcial${i + 1}`] || '--'}
-                                            </p>
-                                        </div>
-                                    ))}
+                                    {Array.from({ length: 2 }, (_, i) => {
+                                        const gradeValue = nota[`parcial${i + 1}`];
+                                        const tipoEvaluacion = `parcial${i + 1}`;
+                                        
+                                        return (
+                                            <div 
+                                                key={i} 
+                                                className={`text-center p-2 bg-purple-50 rounded border border-purple-100 transition-all duration-200 ${
+                                                    gradeValue ? 'cursor-pointer hover:bg-purple-100' : 'cursor-default'
+                                                }`}
+                                                onClick={() => handleGradeClick(
+                                                    curso.curso_id || nota.curso_id,
+                                                    tipoEvaluacion,
+                                                    gradeValue,
+                                                    curso.curso_nombre
+                                                )}
+                                            >
+                                                <p className="text-xs text-purple-700 mb-1">Parc{i + 1}</p>
+                                                <p className="text-sm font-bold text-gray-900">
+                                                    {gradeValue || '--'}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -137,6 +198,16 @@ const GradeCard = ({ curso, gradeUtils, handlePrintCourse }) => {
                     </div>
                 );
             })}
+            
+            {/* Modal de detalles de nota */}
+            <InfoNota 
+                isOpen={isModalOpen}
+                onClose={closeGradeModal}
+                gradeInfo={selectedGrade}
+                gradeDetails={gradeDetails}
+                loading={loading}
+                error={error}
+            />
         </div>
     );
 }

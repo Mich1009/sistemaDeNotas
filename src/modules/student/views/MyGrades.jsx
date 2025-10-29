@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Award, BookOpen, TrendingUp, Search, CheckCircle, AlertCircle, FileText, } from 'lucide-react';
-import { studentService, gradeUtils } from '../services/apiStudent';
+import { gradesService, gradeUtils } from '../services/apiStudent';
 import toast from 'react-hot-toast';
 import GradeCard from '../components/GradeCard';
 import { usePrintCourse } from '../components/PrintCourse';
@@ -15,19 +15,18 @@ const MyGrades = () => {
     const [activeFilters, setActiveFilters] = useState({
         ciclo_id: '',
         docente_id: '',
-        año: new Date().getFullYear().toString(),
         search: ''
     });
 
     // Hook para la funcionalidad de impresión
     const { handlePrintCourse } = usePrintCourse();
 
-    const loadGradesData = async () => {
+    const loadGradesData = async (filters = {}) => {
         try {
             setLoading(true);
-            // Cargar todos los datos sin filtros para hacer filtrado en el cliente
-            const response = await studentService.getGradesOverview({});
-            console.log('📊 Grades overview (all data):', response);
+            // Cargar datos con los filtros aplicados
+            const response = await gradesService.getGradesOverview(filters);
+            console.log('📊 Grades overview:', response);
             setGradesData(response);
         } catch (error) {
             console.error('Error loading grades data:', error);
@@ -40,44 +39,34 @@ const MyGrades = () => {
     };
 
     useEffect(() => {
-        loadGradesData();
+        loadGradesData(activeFilters);
     }, []);
 
-    // Aplicar filtros y buscar
-    const filteredGrades = gradeUtils.filterGrades(gradesData.grades, activeFilters);
+    // Los datos ya vienen filtrados del backend, no necesitamos filtrado adicional del cliente
+    const filteredGrades = gradesData.grades;
 
     // Agrupar notas por curso para mejor visualización
     const groupedGrades = gradeUtils.groupGradesByCourse(filteredGrades);
-
-    // Filtrar ciclos dinámicamente según el año seleccionado
-    const availableCycles = activeFilters.año 
-        ? gradesData.filters.ciclos.filter(ciclo => ciclo.año.toString() === activeFilters.año)
-        : gradesData.filters.ciclos;
 
     const handleFilterChange = (filterType, value) => {
         const newFilters = {
             ...activeFilters,
             [filterType]: value
         };
-
-        // Si se cambia el año, resetear el ciclo seleccionado
-        if (filterType === 'año') {
-            newFilters.ciclo_id = '';
-        }
-
         setActiveFilters(newFilters);
-        // Ya no necesitamos recargar datos del servidor, todo se filtra en el cliente
+        // Recargar datos con los nuevos filtros
+        loadGradesData(newFilters);
     };
 
     const clearFilters = () => {
         const clearedFilters = {
             ciclo_id: '',
             docente_id: '',
-            año: new Date().getFullYear().toString(),
             search: ''
         };
         setActiveFilters(clearedFilters);
-        // Ya no necesitamos recargar datos del servidor, todo se filtra en el cliente
+        // Recargar datos sin filtros
+        loadGradesData(clearedFilters);
     };
 
     const hasActiveFilters = Object.values(activeFilters).some(value => value !== '');
@@ -160,31 +149,14 @@ const MyGrades = () => {
                     />
                 </div>
 
-                {/* Filtro por Año */}
-                <select
-                    value={activeFilters.año}
-                    onChange={(e) => handleFilterChange('año', e.target.value)}
-                    className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                    <option value="">Todos los años</option>
-                    {gradesData.filters.años && gradesData.filters.años.map((año, index) => (
-                        <option key={index} value={año.año}>
-                            {año.año}
-                        </option>
-                    ))}
-                </select>
-
-                {/* Filtro por Ciclo - Dinámico según el año */}
+                {/* Filtro por Ciclo */}
                 <select
                     value={activeFilters.ciclo_id}
                     onChange={(e) => handleFilterChange('ciclo_id', e.target.value)}
                     className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    disabled={!activeFilters.año}
                 >
-                    <option value="">
-                        {activeFilters.año ? 'Todos los ciclos' : 'Selecciona un año primero'}
-                    </option>
-                    {availableCycles.map(ciclo => (
+                    <option value="">Todos los ciclos</option>
+                    {gradesData.filters.ciclos.map(ciclo => (
                         <option key={ciclo.id} value={ciclo.id}>
                             {ciclo.nombre} ({ciclo.año})
                         </option>

@@ -160,7 +160,43 @@ export const matriculasService = {
 
 // Servicios de Reportes
 export const reportesService = {
-    // Aquí se pueden agregar otros servicios de reportes en el futuro
-};
+    getEstructuraJerarquica: async (año = null) => {
+        const params = año ? `?año=${año}` : '';
+        const response = await api.get(`/admin/reportes/jerarquicos/carreras-ciclos${params}`);
+        return response.data;
+    },
 
-// Exportar todos los servicios
+    getPromediosPorCiclo: async (filtros = {}) => {
+        const params = new URLSearchParams();
+        if (filtros.año) params.append('año', filtros.año);
+        if (filtros.carrera_id) params.append('carrera_id', filtros.carrera_id);
+
+        const response = await api.get(`/admin/reportes/promedios/por-ciclo?${params}`);
+        return response.data;
+    },
+
+    getAñosDisponibles: async () => {
+        const response = await api.get('/admin/reportes/filtros/años-disponibles');
+        return response.data;
+    },
+
+    exportarNotasTodosCiclos: async (formato = 'excel') => {
+        const response = await api.get(`/admin/reportes/exportar/notas-todos-ciclos?formato=${formato}`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    exportarNotasPorCiclo: async (cicloId, formato = 'excel') => {
+        const response = await api.get(`/admin/reportes/exportar/notas-por-ciclo/${cicloId}?formato=${formato}`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    getEstudiantesPorCurso: async (cursoId, estado = null) => {
+        const params = estado ? `?estado=${estado}` : '';
+        const response = await api.get(`/admin/reportes/curso/${cursoId}/estudiantes${params}`);
+        return response.data;
+    }
+};

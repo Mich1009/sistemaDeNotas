@@ -74,3 +74,7 @@ body {
 .scrollbar-light::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+.react-flow__renderer {
+  cursor: url('data:image/svg+xml;utf8,<svg fill="black" height="16" width="16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6"/></svg>') 8 8, crosshair !important;
+}

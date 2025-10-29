@@ -7,9 +7,10 @@ import {
     Clock,
     Award,
     Search,
-    Filter
+    Filter,
+    ChevronDown
 } from 'lucide-react';
-import { academicService } from '../services/apiStudent';
+import { coursesService } from '../services/apiStudent';
 import toast from 'react-hot-toast';
 
 const MyCourses = () => {
@@ -17,21 +18,52 @@ const MyCourses = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredCourses, setFilteredCourses] = useState([]);
+    
+    // Estados para filtros
+    const [selectedCycle, setSelectedCycle] = useState('');
+    const [availableCycles, setAvailableCycles] = useState([]);
 
     useEffect(() => {
         loadCourses();
-    }, []);
+    }, [selectedCycle]);
 
     useEffect(() => {
         filterCourses();
     }, [courses, searchTerm]);
 
+    const loadCoursesFilters = async () => {
+        try {
+            const filtersData = await coursesService.getCoursesFilters();
+            console.log('Filters data:', filtersData); // Debug log
+            
+            if (filtersData) {
+                setAvailableCycles(filtersData.ciclos || []);
+            }
+        } catch (error) {
+            console.error('Error loading filters:', error);
+            toast.error('Error al cargar los filtros');
+        }
+    };
+
     const loadCourses = async () => {
         try {
             setLoading(true);
-            const response = await academicService.getCourses();
+            
+            // Cargar filtros iniciales si no se han cargado
+            if (availableCycles.length === 0) {
+                await loadCoursesFilters();
+            }
+            
+            const params = {};
+            
+            if (selectedCycle) {
+                params.numero_ciclo = selectedCycle;
+            }
+            
+            const response = await coursesService.getCourses(params);
             console.log('Courses response:', response); // Debug log
             setCourses(response || []);
+            
         } catch (error) {
             console.error('Error loading courses:', error);
             toast.error('Error al cargar los cursos');
@@ -47,9 +79,9 @@ const MyCourses = () => {
         if (searchTerm) {
             filtered = filtered.filter(course =>
                 course.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                course.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                course.docente_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                course.carrera_nombre.toLowerCase().includes(searchTerm.toLowerCase())
+                (course.docente_nombre && course.docente_nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (course.carrera_nombre && course.carrera_nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (course.ciclo_nombre && course.ciclo_nombre.toLowerCase().includes(searchTerm.toLowerCase()))
             );
         }
 
@@ -64,17 +96,22 @@ const MyCourses = () => {
                         {course.nombre}
                     </h3>
                     <p className="text-sm text-secondary-600 mb-3">
-                        {course.codigo} • {course.carrera_nombre}
+                        {course.carrera_nombre && `${course.carrera_nombre} • `}
+                        {course.ciclo_nombre}
+                        {course.ciclo_año && ` (${course.ciclo_año})`}
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="flex items-center text-sm text-secondary-600">
                             <User className="w-4 h-4 mr-2" />
-                            <span>{course.docente_nombre}</span>
+                            <span>{course.docente_nombre || 'Sin asignar'}</span>
                         </div>
                         <div className="flex items-center text-sm text-secondary-600">
                             <Calendar className="w-4 h-4 mr-2" />
-                            <span>{course.ciclo_nombre}</span>
+                            <span>
+                                {course.ciclo_nombre}
+                                {course.ciclo_numero && ` - Ciclo ${course.ciclo_numero}`}
+                            </span>
                         </div>
                         {course.aula && (
                             <div className="flex items-center text-sm text-secondary-600">
@@ -82,10 +119,14 @@ const MyCourses = () => {
                                 <span>Aula {course.aula}</span>
                             </div>
                         )}
-                        <div className="flex items-center text-sm text-secondary-600">
-                            <Clock className="w-4 h-4 mr-2" />
-                            <span>{course.horas_semanales} horas/semana</span>
-                        </div>
+                        {course.fecha_inicio && course.fecha_fin && (
+                            <div className="flex items-center text-sm text-secondary-600">
+                                <Clock className="w-4 h-4 mr-2" />
+                                <span>
+                                    {new Date(course.fecha_inicio).toLocaleDateString()} - {new Date(course.fecha_fin).toLocaleDateString()}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {course.horario && (
@@ -100,7 +141,7 @@ const MyCourses = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center text-sm text-secondary-600">
                             <Award className="w-4 h-4 mr-2" />
-                            <span>{course.creditos} créditos</span>
+                            <span>Año {course.ciclo_año}</span>
                         </div>
                         <div className="text-sm text-primary-600 font-medium">
                             Curso Activo
@@ -158,17 +199,37 @@ const MyCourses = () => {
 
             {/* Filtros */}
             <div className="card p-6">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                    {/* Búsqueda */}
                     <div className="flex-1">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary-400 w-4 h-4" />
                             <input
                                 type="text"
-                                placeholder="Buscar por curso, código, docente o carrera..."
+                                placeholder="Buscar por curso, docente o carrera..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
+                        </div>
+                    </div>
+                    
+                    {/* Filtro por Ciclo */}
+                    <div className="min-w-[150px]">
+                        <div className="relative">
+                            <select
+                                value={selectedCycle}
+                                onChange={(e) => setSelectedCycle(e.target.value)}
+                                className="w-full appearance-none bg-white border border-secondary-300 rounded-lg px-4 py-2 pr-8 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="">Todos los ciclos</option>
+                                {availableCycles.map(cycle => (
+                                    <option key={cycle} value={cycle}>
+                                        Ciclo {cycle}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-secondary-400 w-4 h-4 pointer-events-none" />
                         </div>
                     </div>
                 </div>
@@ -179,6 +240,11 @@ const MyCourses = () => {
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-secondary-900">
                         Cursos Matriculados ({filteredCourses.length})
+                        {selectedCycle && (
+                            <span className="text-sm font-normal text-secondary-600 ml-2">
+                                - Ciclo {selectedCycle}
+                            </span>
+                        )}
                     </h2>
                 </div>
 
@@ -196,8 +262,8 @@ const MyCourses = () => {
                         </h3>
                         <p className="text-secondary-600">
                             {searchTerm
-                                ? 'Intenta con otros términos de búsqueda'
-                                : 'Contacta al administrador para matricularte en cursos'
+                                ? 'Intenta con otros términos de búsqueda o cambia los filtros'
+                                : `No tienes cursos matriculados${selectedCycle ? ` en el ciclo ${selectedCycle}` : ''}`
                             }
                         </p>
                     </div>
