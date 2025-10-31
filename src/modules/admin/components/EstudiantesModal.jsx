@@ -4,9 +4,7 @@ import { reportesService } from '../services/apiAdmin';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 
-const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
-    console.log('🎭 EstudiantesModal renderizado con props:', { isOpen, cursoId, cursoNombre });
-
+const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre, cicloId, cicloNombre, tipo = 'curso' }) => {
     const [estudiantes, setEstudiantes] = useState([]);
     const [estadisticas, setEstadisticas] = useState({});
     const [loading, setLoading] = useState(false);
@@ -14,30 +12,35 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
     const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null);
 
     const cargarEstudiantes = useCallback(async () => {
-        if (!cursoId) return;
+        const entityId = tipo === 'curso' ? cursoId : cicloId;
+        if (!entityId) return;
 
         setLoading(true);
         try {
-            // Siempre cargar todos los estudiantes para poder filtrar localmente
-            const response = await reportesService.getEstudiantesPorCurso(cursoId, null);
+            // Cargar estudiantes según el tipo (curso o ciclo)
+            const response = tipo === 'curso' 
+                ? await reportesService.getEstudiantesPorCurso(entityId, null)
+                : await reportesService.getEstudiantesPorCiclo(entityId, null);
+                
             if (response.success) {
                 setEstudiantes(response.data.estudiantes);
                 setEstadisticas(response.data.estadisticas);
             }
         } catch (error) {
-            toast.error('Error al cargar estudiantes');
+            toast.error(`Error al cargar estudiantes del ${tipo}`);
             console.error('Error:', error);
         } finally {
             setLoading(false);
         }
-    }, [cursoId]); // Removido vistaActual de las dependencias
+    }, [cursoId, cicloId, tipo]);
 
     // Efecto para cargar datos cuando se abre el modal
     useEffect(() => {
-        if (isOpen && cursoId) {
+        const entityId = tipo === 'curso' ? cursoId : cicloId;
+        if (isOpen && entityId) {
             cargarEstudiantes();
         }
-    }, [isOpen, cursoId, cargarEstudiantes]);
+    }, [isOpen, cursoId, cicloId, tipo, cargarEstudiantes]);
 
     const exportarAExcel = () => {
         if (estudiantes.length === 0) {
@@ -53,71 +56,69 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
             // Crear datos para Excel con aprobados primero, luego desaprobados
             const datosExcel = [];
 
+            // Definir columnas según el tipo
+            const columnas = tipo === 'curso' 
+                ? ['Nombre Completo', 'DNI', 'Email', 'Estado', 'Promedio Final', 'Evaluaciones', 'Prácticas', 'Parciales']
+                : ['Nombre Completo', 'DNI', 'Email', 'Estado', 'Promedio Ponderado'];
+
             // Agregar encabezado de aprobados
             if (aprobados.length > 0) {
-                datosExcel.push({
-                    'Nombre Completo': '=== ESTUDIANTES APROBADOS ===',
-                    'DNI': '',
-                    'Email': '',
-                    'Estado': '',
-                    'Promedio Final': '',
-                    'Evaluaciones': '',
-                    'Prácticas': '',
-                    'Parciales': ''
-                });
+                const headerRow = {};
+                columnas.forEach(col => headerRow[col] = col === 'Nombre Completo' ? '=== ESTUDIANTES APROBADOS ===' : '');
+                datosExcel.push(headerRow);
 
                 // Agregar estudiantes aprobados
                 aprobados.forEach(estudiante => {
-                    datosExcel.push({
+                    const row = {
                         'Nombre Completo': estudiante.nombre_completo,
                         'DNI': estudiante.dni,
                         'Email': estudiante.email,
                         'Estado': estudiante.estado.toUpperCase(),
-                        'Promedio Final': estudiante.promedio_final.toFixed(2),
-                        'Evaluaciones': estudiante.notas_detalle.evaluaciones.join(', '),
-                        'Prácticas': estudiante.notas_detalle.practicas.join(', '),
-                        'Parciales': estudiante.notas_detalle.parciales.join(', ')
-                    });
+                    };
+
+                    if (tipo === 'curso') {
+                        row['Promedio Final'] = estudiante.promedio_final.toFixed(2);
+                        row['Evaluaciones'] = estudiante.notas_detalle?.evaluaciones?.join(', ') || '';
+                        row['Prácticas'] = estudiante.notas_detalle?.practicas?.join(', ') || '';
+                        row['Parciales'] = estudiante.notas_detalle?.parciales?.join(', ') || '';
+                    } else {
+                        row['Promedio Ponderado'] = estudiante.promedio_ponderado.toFixed(2);
+                    }
+
+                    datosExcel.push(row);
                 });
 
                 // Agregar fila vacía
-                datosExcel.push({
-                    'Nombre Completo': '',
-                    'DNI': '',
-                    'Email': '',
-                    'Estado': '',
-                    'Promedio Final': '',
-                    'Evaluaciones': '',
-                    'Prácticas': '',
-                    'Parciales': ''
-                });
+                const emptyRow = {};
+                columnas.forEach(col => emptyRow[col] = '');
+                datosExcel.push(emptyRow);
             }
 
             // Agregar encabezado de desaprobados
             if (desaprobados.length > 0) {
-                datosExcel.push({
-                    'Nombre Completo': '=== ESTUDIANTES DESAPROBADOS ===',
-                    'DNI': '',
-                    'Email': '',
-                    'Estado': '',
-                    'Promedio Final': '',
-                    'Evaluaciones': '',
-                    'Prácticas': '',
-                    'Parciales': ''
-                });
+                const headerRow = {};
+                columnas.forEach(col => headerRow[col] = col === 'Nombre Completo' ? '=== ESTUDIANTES DESAPROBADOS ===' : '');
+                datosExcel.push(headerRow);
 
                 // Agregar estudiantes desaprobados
                 desaprobados.forEach(estudiante => {
-                    datosExcel.push({
+                    const row = {
                         'Nombre Completo': estudiante.nombre_completo,
                         'DNI': estudiante.dni,
                         'Email': estudiante.email,
                         'Estado': estudiante.estado.toUpperCase(),
-                        'Promedio Final': estudiante.promedio_final.toFixed(2),
-                        'Evaluaciones': estudiante.notas_detalle.evaluaciones.join(', '),
-                        'Prácticas': estudiante.notas_detalle.practicas.join(', '),
-                        'Parciales': estudiante.notas_detalle.parciales.join(', ')
-                    });
+                    };
+
+                    if (tipo === 'curso') {
+                        row['Promedio Final'] = estudiante.promedio_final.toFixed(2);
+                        row['Evaluaciones'] = estudiante.notas_detalle?.evaluaciones?.join(', ') || '';
+                        row['Prácticas'] = estudiante.notas_detalle?.practicas?.join(', ') || '';
+                        row['Parciales'] = estudiante.notas_detalle?.parciales?.join(', ') || '';
+                    } else {
+                        row['Promedio Ponderado'] = estudiante.promedio_ponderado.toFixed(2);
+                    }
+
+                    datosExcel.push(row);
                 });
             }
 
@@ -125,17 +126,25 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(datosExcel);
 
-            // Ajustar ancho de columnas
-            const colWidths = [
-                { wch: 25 }, // Nombre Completo
-                { wch: 12 }, // DNI
-                { wch: 25 }, // Email
-                { wch: 12 }, // Estado
-                { wch: 15 }, // Promedio Final
-                { wch: 20 }, // Evaluaciones
-                { wch: 20 }, // Prácticas
-                { wch: 20 }  // Parciales
-            ];
+            // Ajustar ancho de columnas según el tipo
+            const colWidths = tipo === 'curso' 
+                ? [
+                    { wch: 25 }, // Nombre Completo
+                    { wch: 12 }, // DNI
+                    { wch: 25 }, // Email
+                    { wch: 12 }, // Estado
+                    { wch: 15 }, // Promedio Final
+                    { wch: 20 }, // Evaluaciones
+                    { wch: 20 }, // Prácticas
+                    { wch: 20 }  // Parciales
+                ]
+                : [
+                    { wch: 25 }, // Nombre Completo
+                    { wch: 12 }, // DNI
+                    { wch: 25 }, // Email
+                    { wch: 12 }, // Estado
+                    { wch: 18 }  // Promedio Ponderado
+                ];
             ws['!cols'] = colWidths;
 
             // Agregar hoja al libro
@@ -143,7 +152,8 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
 
             // Generar nombre del archivo
             const fechaActual = new Date().toLocaleDateString('es-ES').replace(/\//g, '-');
-            const nombreArchivo = `Estudiantes_${cursoNombre.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaActual}.xlsx`;
+            const entityName = tipo === 'curso' ? cursoNombre : cicloNombre;
+            const nombreArchivo = `Estudiantes_${entityName.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaActual}.xlsx`;
 
             // Descargar archivo
             XLSX.writeFile(wb, nombreArchivo);
@@ -175,11 +185,8 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
     };
 
     if (!isOpen) {
-        console.log('❌ Modal no se renderiza porque isOpen es:', isOpen);
         return null;
     }
-
-    console.log('✅ Modal se va a renderizar porque isOpen es:', isOpen);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -190,9 +197,9 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
                         <div>
                             <h2 className="text-2xl font-bold flex items-center gap-2">
                                 <Users className="w-6 h-6" />
-                                Estudiantes del Curso
+                                {tipo === 'curso' ? 'Estudiantes del Curso' : 'Estudiantes del Ciclo'}
                             </h2>
-                            <p className="text-blue-100 mt-1">{cursoNombre}</p>
+                            <p className="text-blue-100 mt-1">{tipo === 'curso' ? cursoNombre : cicloNombre}</p>
                         </div>
                         <div className="flex items-center mr-4">
                             <button
@@ -320,10 +327,13 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
                                         <div className="border-t pt-3">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-sm font-medium text-gray-700">
-                                                    Promedio Final:
+                                                    {tipo === 'curso' ? 'Promedio Final:' : 'Promedio Ponderado:'}
                                                 </span>
                                                 <span className={`font-bold ${getEstadoColor(estudiante.estado)}`}>
-                                                    {estudiante.promedio_final.toFixed(2)}
+                                                    {tipo === 'curso' 
+                                                        ? estudiante.promedio_final?.toFixed(2) 
+                                                        : estudiante.promedio_ponderado?.toFixed(2)
+                                                    }
                                                 </span>
                                             </div>
                                             <button
@@ -358,52 +368,87 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre }) => {
                                 </div>
                             </div>
                             <div className="p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Evaluaciones */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">Evaluaciones (10%)</h4>
-                                        <div className="space-y-2">
-                                            {estudianteSeleccionado.notas_detalle.evaluaciones.map((nota, index) => (
-                                                <div key={index} className="flex justify-between text-sm">
-                                                    <span>Eval {index + 1}:</span>
-                                                    <span className="font-medium">{nota}</span>
-                                                </div>
-                                            ))}
+                                {tipo === 'curso' ? (
+                                    // Vista detallada para cursos
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Evaluaciones */}
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 mb-3">Evaluaciones (10%)</h4>
+                                            <div className="space-y-2">
+                                                {estudianteSeleccionado.notas_detalle?.evaluaciones?.map((nota, index) => (
+                                                    <div key={index} className="flex justify-between text-sm">
+                                                        <span>Eval {index + 1}:</span>
+                                                        <span className="font-medium">{nota}</span>
+                                                    </div>
+                                                )) || <span className="text-gray-500 text-sm">No hay evaluaciones</span>}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Prácticas */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">Prácticas (30%)</h4>
-                                        <div className="space-y-2">
-                                            {estudianteSeleccionado.notas_detalle.practicas.map((nota, index) => (
-                                                <div key={index} className="flex justify-between text-sm">
-                                                    <span>Práctica {index + 1}:</span>
-                                                    <span className="font-medium">{nota}</span>
-                                                </div>
-                                            ))}
+                                        {/* Prácticas */}
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 mb-3">Prácticas (30%)</h4>
+                                            <div className="space-y-2">
+                                                {estudianteSeleccionado.notas_detalle?.practicas?.map((nota, index) => (
+                                                    <div key={index} className="flex justify-between text-sm">
+                                                        <span>Práctica {index + 1}:</span>
+                                                        <span className="font-medium">{nota}</span>
+                                                    </div>
+                                                )) || <span className="text-gray-500 text-sm">No hay prácticas</span>}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Parciales */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">Parciales (60%)</h4>
-                                        <div className="space-y-2">
-                                            {estudianteSeleccionado.notas_detalle.parciales.map((nota, index) => (
-                                                <div key={index} className="flex justify-between text-sm">
-                                                    <span>Parcial {index + 1}:</span>
-                                                    <span className="font-medium">{nota}</span>
-                                                </div>
-                                            ))}
+                                        {/* Parciales */}
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 mb-3">Parciales (60%)</h4>
+                                            <div className="space-y-2">
+                                                {estudianteSeleccionado.notas_detalle?.parciales?.map((nota, index) => (
+                                                    <div key={index} className="flex justify-between text-sm">
+                                                        <span>Parcial {index + 1}:</span>
+                                                        <span className="font-medium">{nota}</span>
+                                                    </div>
+                                                )) || <span className="text-gray-500 text-sm">No hay parciales</span>}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    // Vista simplificada para ciclos
+                                    <div className="space-y-4">
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h4 className="font-medium text-gray-900 mb-2">Información del Ciclo</h4>
+                                            <p className="text-sm text-gray-600">
+                                                Este promedio representa el promedio ponderado de todos los cursos del ciclo.
+                                            </p>
+                                        </div>
+                                        
+                                        {estudianteSeleccionado.cursos_detalle && (
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Cursos del Ciclo</h4>
+                                                <div className="space-y-2">
+                                                    {estudianteSeleccionado.cursos_detalle.map((curso, index) => (
+                                                        <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                                            <span className="text-sm">{curso.nombre}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-medium">{curso.promedio.toFixed(2)}</span>
+                                                                <span className="text-xs text-gray-500">({curso.creditos} créditos)</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="mt-6 pt-4 border-t">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-lg font-semibold">Promedio Final:</span>
+                                        <span className="text-lg font-semibold">
+                                            {tipo === 'curso' ? 'Promedio Final:' : 'Promedio Ponderado:'}
+                                        </span>
                                         <span className={`text-xl font-bold ${getEstadoColor(estudianteSeleccionado.estado)}`}>
-                                            {estudianteSeleccionado.promedio_final.toFixed(2)}
+                                            {tipo === 'curso' 
+                                                ? estudianteSeleccionado.promedio_final?.toFixed(2) 
+                                                : estudianteSeleccionado.promedio_ponderado?.toFixed(2)
+                                            }
                                         </span>
                                     </div>
                                     <div className="mt-2">
