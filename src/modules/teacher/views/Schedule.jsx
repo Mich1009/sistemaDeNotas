@@ -15,10 +15,11 @@ const Schedule = () => {
     const [currentWeek, setCurrentWeek] = useState([]);
 
     // Días de la semana
-    const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     
-    // Horas del día (formato 24h)
-    const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7:00 AM a 8:00 PM
+    // Periodos de 45 minutos con recreo 18:00–18:20
+    const timeSlots = ['14:15', '15:00', '15:45', '16:30', '17:15', '18:00', '18:20', '19:05'];
+    const END_OF_DAY_MIN = 19 * 60 + 50; // 19:50
 
     useEffect(() => {
         fetchCourses();
@@ -49,8 +50,9 @@ const Schedule = () => {
     const fetchCourses = async () => {
         try {
             setLoading(true);
-            const response = await cursosService.getCourses();
-            setCourses(response.data || []);
+            const data = await cursosService.getCourses();
+            // El servicio ya retorna los datos; no existe "response.data" aquí
+            setCourses(Array.isArray(data) ? data : []);
             setLoading(false);
         } catch (error) {
             console.error('Error al cargar los cursos:', error);
@@ -62,8 +64,8 @@ const Schedule = () => {
     const fetchScheduleItems = async () => {
         try {
             setLoading(true);
-            // Generar horarios basados en los cursos reales
-            const scheduleItems = getMockScheduleItems();
+            // Generar horario estático basado en los cursos del docente
+            const scheduleItems = getStaticScheduleItems();
             
             // Filtrar por curso seleccionado si no es "all"
             const filteredItems = selectedCourse === 'all' 
@@ -80,8 +82,8 @@ const Schedule = () => {
         }
     };
 
-    // Función para generar horarios basados en los cursos reales
-    const getMockScheduleItems = () => {
+    // Horario estático por código de curso (L–V)
+        const getStaticScheduleItems = () => {
         if (courses.length === 0) return [];
         
         const colors = [
@@ -94,35 +96,77 @@ const Schedule = () => {
             'bg-pink-100 border-pink-500',
             'bg-orange-100 border-orange-500'
         ];
-        
-        const mockItems = [];
-        
-        // Generar horarios para cada curso
-        courses.forEach((course, courseIndex) => {
-            const color = colors[courseIndex % colors.length];
-            
-            // Generar 2-3 clases por semana para cada curso
-            const classesPerWeek = Math.floor(Math.random() * 2) + 2; // 2-3 clases
-            
-            for (let i = 0; i < classesPerWeek; i++) {
-                const dayIndex = Math.floor(Math.random() * 5); // Lunes a Viernes
-                const hourStart = Math.floor(Math.random() * 10) + 7; // Entre 7 AM y 5 PM
-                const duration = Math.floor(Math.random() * 2) + 1; // 1 o 2 horas
-                
-                mockItems.push({
-                    id: `${course.id}-${i}`,
-                    day: dayIndex,
-                    start_time: `${hourStart}:00`,
-                    end_time: `${hourStart + duration}:00`,
-                    course_id: course.id,
-                    course_name: course.nombre,
-                    classroom: `Aula ${Math.floor(Math.random() * 20) + 101}`,
-                    color: color
+        // Mapa de bloques fijos por código (0=Lunes .. 4=Viernes)
+        const scheduleMap = {
+            TAM601: [
+                { day: 0, start: '14:15', end: '15:45' },
+                { day: 2, start: '18:20', end: '19:50' },
+                { day: 4, start: '14:15', end: '16:30' },
+            ],
+            IN602: [
+                { day: 0, start: '15:45', end: '17:15' },
+                { day: 3, start: '15:45', end: '17:45' },
+            ],
+            OE603: [
+                { day: 0, start: '17:15', end: '18:00' },
+                { day: 0, start: '18:20', end: '19:05' },
+            ],
+            EF604: [
+                { day: 1, start: '15:00', end: '16:30' },
+            ],
+            TPW605: [
+                { day: 1, start: '16:30', end: '18:00' },
+                { day: 1, start: '18:20', end: '19:05' },
+                { day: 2, start: '14:15', end: '15:45' },
+                { day: 4, start: '16:30', end: '18:00' },
+                { day: 4, start: '18:20', end: '19:05' },
+            ],
+            HM606: [
+                { day: 2, start: '15:45', end: '18:00' },
+                { day: 3, start: '14:15', end: '15:45' },
+            ],
+            SP607: [
+                { day: 3, start: '17:15', end: '18:00' },
+                { day: 3, start: '18:20', end: '19:50' },
+            ],
+        };
+
+        // Mapeo por nombre cuando no hay código en el API del docente
+        const mapCourseToKey = (course) => {
+            const name = String(course?.nombre || '').toLowerCase();
+            if (name.includes('programación web') || name.includes('programacion web')) return 'TPW605';
+            if (name.includes('inteligencia de negocios')) return 'IN602';
+            if (name.includes('aplicaciones móviles') || name.includes('aplicaciones moviles')) return 'TAM601';
+            if (name.includes('oportunidades de negocios')) return 'OE603';
+            if (name.includes('experiencias formativas')) return 'EF604';
+            if (name.includes('herramientas multimedia')) return 'HM606';
+            if (name.includes('solución de problemas') || name.includes('solucion de problemas')) return 'SP607';
+            return null;
+        };
+
+        const items = [];
+        courses.forEach((course, idx) => {
+            const color = colors[idx % colors.length];
+            const byCode = String(course.codigo || course.code || '').toUpperCase().replace(/\s+/g, '');
+            const key = scheduleMap[byCode] ? byCode : mapCourseToKey(course);
+            const blocks = key ? (scheduleMap[key] || []) : [];
+            blocks.forEach((b, i) => {
+                items.push({
+                    id: `${course.id ?? key ?? idx}-${i}`,
+                    day: b.day,
+                    start_time: b.start,
+                    end_time: b.end,
+                    course_id: course.id ?? idx,
+                    course_name: course.nombre ?? key ?? 'Curso',
+                    classroom: course.aula || 'Aula por definir',
+                    color,
                 });
-            }
+            });
         });
-        
-        return mockItems;
+
+        // Nota: Solo mostramos los cursos del docente logueado (provenientes del API).
+
+        return items;
     };
 
     const navigatePrevious = () => {
@@ -169,21 +213,40 @@ const Schedule = () => {
         });
     };
 
-    const formatHour = (hour) => {
-        return `${hour}:00`;
+    const parseToMinutes = (hhmm) => {
+        const [h, m] = hhmm.split(':').map(Number);
+        return h * 60 + m;
     };
 
-    const getScheduleItemsForHour = (hour, dayIndex) => {
+    const getRowRangeForSlot = (slotLabel) => {
+        const startMin = parseToMinutes(slotLabel);
+        const idx = timeSlots.indexOf(slotLabel);
+        const nextStart = idx >= 0 && idx + 1 < timeSlots.length
+            ? parseToMinutes(timeSlots[idx + 1])
+            : END_OF_DAY_MIN;
+        return { startMin, endMin: nextStart };
+    };
+
+    const getScheduleItemsForSlot = (slotLabel, dayIndex) => {
+        const { startMin, endMin } = getRowRangeForSlot(slotLabel);
         return scheduleItems.filter(item => {
-            const startHour = parseInt(item.start_time.split(':')[0]);
-            const endHour = parseInt(item.end_time.split(':')[0]);
-            return item.day === dayIndex && startHour <= hour && endHour > hour;
+            if (item.day !== dayIndex) return false;
+            const s = parseToMinutes(item.start_time);
+            const e = parseToMinutes(item.end_time);
+            return s < endMin && e > startMin;
         });
+    };
+
+    const getSlotRangeLabel = (slot) => {
+        const idx = timeSlots.indexOf(slot);
+        const end = idx >= 0 && idx + 1 < timeSlots.length ? timeSlots[idx + 1] : '19:50';
+        const base = `${slot} - ${end}`;
+        return slot === '18:00' ? `${base} • Recreo` : base;
     };
 
     const renderWeekView = () => {
         return (
-            <div className="grid grid-cols-8 gap-1 mt-4 overflow-x-auto">
+            <div className="grid gap-1 mt-4 overflow-x-auto" style={{ gridTemplateColumns: 'auto repeat(5, minmax(0, 1fr))' }}>
                 {/* Encabezados de días */}
                 <div className="sticky left-0 z-10 bg-gray-50"></div>
                 {weekdays.map((day, index) => (
@@ -194,27 +257,26 @@ const Schedule = () => {
                         }`}
                     >
                         <div>{day}</div>
-                        <div className="text-xs text-gray-500">
-                            {currentWeek[index] && formatDate(currentWeek[index])}
-                        </div>
                     </div>
                 ))}
                 
-                {/* Horas y eventos */}
-                {hours.map(hour => (
-                    <React.Fragment key={hour}>
+                {/* Periodos y eventos */}
+                {timeSlots.map(slot => (
+                    <React.Fragment key={slot}>
                         {/* Columna de horas */}
-                        <div className="sticky left-0 z-10 bg-white text-right pr-2 py-2 text-sm text-gray-500 border-t border-gray-200">
-                            {formatHour(hour)}
+                        <div className="sticky left-0 z-10 bg-white text-right pr-2 py-2 text-sm text-gray-600 border-t border-gray-200">
+                            {getSlotRangeLabel(slot)}
                         </div>
                         
                         {/* Celdas para cada día */}
                         {weekdays.map((_, dayIndex) => (
                             <div 
-                                key={`${hour}-${dayIndex}`} 
-                                className="h-16 border-t border-gray-200 relative"
+                                key={`${slot}-${dayIndex}`} 
+                                className={`h-16 border-t border-gray-200 relative ${slot === '18:00' ? 'bg-yellow-50' : ''}`}
                             >
-                                {getScheduleItemsForHour(hour, dayIndex).map(item => (
+                                {slot === '18:00' ? (
+                                    <div className="absolute inset-0 flex items-center justify-center text-xs text-yellow-700">Recreo</div>
+                                ) : getScheduleItemsForSlot(slot, dayIndex).map(item => (
                                     <div 
                                         key={item.id}
                                         className={`absolute inset-x-1 rounded-md border-l-4 p-2 overflow-hidden shadow-sm ${item.color || 'bg-blue-100 border-blue-500'}`}
@@ -247,17 +309,19 @@ const Schedule = () => {
                 </h3>
                 
                 <div className="space-y-2">
-                    {hours.map(hour => (
+                    {timeSlots.map(slot => (
                         <div 
-                            key={hour} 
+                            key={slot} 
                             className="flex border-t border-gray-200 relative"
                         >
-                            <div className="w-20 py-3 text-right pr-4 text-sm text-gray-500">
-                                {formatHour(hour)}
+                            <div className="w-28 py-3 text-right pr-4 text-sm text-gray-500">
+                                {getSlotRangeLabel(slot)}
                             </div>
                             
                             <div className="flex-1 min-h-[4rem] relative">
-                                {getScheduleItemsForHour(hour, adjustedDayIndex).map(item => (
+                                {slot === '18:00' ? (
+                                    <div className="h-full flex items-center justify-center text-xs text-yellow-700">Recreo</div>
+                                ) : getScheduleItemsForSlot(slot, adjustedDayIndex).map(item => (
                                     <div 
                                         key={item.id}
                                         className={`my-1 rounded-md border-l-4 p-3 ${item.color || 'bg-blue-100 border-blue-500'}`}
@@ -268,7 +332,7 @@ const Schedule = () => {
                                     </div>
                                 ))}
                                 
-                                {getScheduleItemsForHour(hour, adjustedDayIndex).length === 0 && (
+                                {slot !== '18:00' && getScheduleItemsForSlot(slot, adjustedDayIndex).length === 0 && (
                                     <div className="h-full border-l border-gray-200"></div>
                                 )}
                             </div>
@@ -295,65 +359,9 @@ const Schedule = () => {
 
                 {/* Filtros y navegación */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0">
-                    <div className="flex items-center space-x-2">
-                        <div className="relative">
-                            <select
-                                value={selectedCourse}
-                                onChange={(e) => setSelectedCourse(e.target.value)}
-                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                disabled={loading}
-                            >
-                                <option value="all">Todos los cursos</option>
-                                {courses.map(course => (
-                                    <option key={course.id} value={course.id}>
-                                        {course.nombre} ({course.codigo})
-                                    </option>
-                                ))}
-                            </select>
-                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        </div>
-                        
-                        <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                            <button
-                                onClick={() => setViewMode('week')}
-                                className={`px-4 py-2 ${viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
-                            >
-                                Semana
-                            </button>
-                            <button
-                                onClick={() => setViewMode('day')}
-                                className={`px-4 py-2 ${viewMode === 'day' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
-                            >
-                                Día
-                            </button>
-                        </div>
-                    </div>
                     
-                    <div className="flex items-center space-x-2">
-                        <button
-                            onClick={navigatePrevious}
-                            className="p-2 rounded-full hover:bg-gray-100"
-                            disabled={loading}
-                        >
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        
-                        <button
-                            onClick={navigateToday}
-                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-                            disabled={loading}
-                        >
-                            Hoy
-                        </button>
-                        
-                        <button
-                            onClick={navigateNext}
-                            className="p-2 rounded-full hover:bg-gray-100"
-                            disabled={loading}
-                        >
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
-                    </div>
+                    
+                    
                 </div>
             </div>
 
@@ -399,3 +407,5 @@ const Schedule = () => {
 };
 
 export default Schedule;
+
+

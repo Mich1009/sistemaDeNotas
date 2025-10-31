@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, LogIn, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { authService } from '../services/apiAuth';
+import Footer from '../../../shared/components/Footer.jsx';
+import upnoteLogo from '../../../assets/upnote.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,7 +19,7 @@ const Login = () => {
     formState: { errors },
   } = useForm();
 
-  // Redirigir si ya está autenticado
+  // Redirigir si ya est� autenticado
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -31,9 +33,9 @@ const Login = () => {
       // Guardar datos en el store
       login(response.user, response.access_token);
       
-      toast.success(`¡Bienvenido, ${response.user.first_name}!`);
+      toast.success(`Bienvenido, ${response.user.first_name}!`);
       
-      // Redirigir según el rol
+      // Redirigir seg�n el rol
       const roleRoutes = {
         admin: '/admin/dashboard',
         docente: '/docente/dashboard',
@@ -53,11 +55,13 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {/* Logo y título */}
+        {/* Logo y t�tulo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
-            <GraduationCap className="w-8 h-8 text-white" />
-          </div>
+          <img
+            src={upnoteLogo}
+            alt="UPNote"
+            className="mx-auto w-16 h-16 rounded-full mb-4 ring-2 ring-primary-600 object-cover"
+          />
           <h1 className="text-3xl font-bold text-secondary-800 mb-2">
             Sistema de Notas
           </h1>
@@ -83,7 +87,7 @@ const Login = () => {
                   required: 'El DNI es obligatorio',
                   pattern: {
                     value: /^\d{8}$/,
-                    message: 'El DNI debe tener exactamente 8 dígitos',
+                    message: 'El DNI debe tener exactamente 8 d�gitos',
                   },
                 })}
               />
@@ -92,7 +96,7 @@ const Login = () => {
               )}
             </div>
 
-            {/* Campo Contraseña */}
+            {/* Campo Contrase�a */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-secondary-700 mb-2">
                 Contraseña
@@ -101,13 +105,13 @@ const Login = () => {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder=""
                   className="input-field pr-10"
                   {...register('password', {
-                    required: 'La contraseña es obligatoria',
+                    required: 'La contrase�a es obligatoria',
                     minLength: {
                       value: 6,
-                      message: 'La contraseña debe tener al menos 6 caracteres',
+                      message: 'La contrase�a debe tener al menos 6 caracteres',
                     },
                   })}
                 />
@@ -128,7 +132,7 @@ const Login = () => {
               )}
             </div>
 
-            {/* Botón de login */}
+            {/* Boton de login */}
             <button
               type="submit"
               disabled={isLoading}
@@ -154,7 +158,7 @@ const Login = () => {
                 toast.info('Contacta al administrador para recuperar tu contraseña');
               }}
             >
-              ¿Olvidaste tu contraseña?
+              Olvidaste tu contraseña?
             </button>
           </div>
         </div>
@@ -170,6 +174,8 @@ const Login = () => {
             <p><strong>Estudiante:</strong> DNI: 11223344, Contraseña: estudiante123</p>
           </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );
