@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, LogIn, GraduationCap, Mail, X } from 'lucide-react
+import { Eye, EyeOff, LogIn, GraduationCap, Mail, X } from 'lucide-react'
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { authService } from '../services/apiAuth';
