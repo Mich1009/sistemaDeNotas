@@ -180,23 +180,15 @@ export const reportesService = {
         return response.data;
     },
 
-    exportarNotasTodosCiclos: async (formato = 'excel') => {
-        const response = await api.get(`/admin/reportes/exportar/notas-todos-ciclos?formato=${formato}`, {
-            responseType: 'blob'
-        });
-        return response.data;
-    },
-
-    exportarNotasPorCiclo: async (cicloId, formato = 'excel') => {
-        const response = await api.get(`/admin/reportes/exportar/notas-por-ciclo/${cicloId}?formato=${formato}`, {
-            responseType: 'blob'
-        });
-        return response.data;
-    },
-
     getEstudiantesPorCurso: async (cursoId, estado = null) => {
         const params = estado ? `?estado=${estado}` : '';
         const response = await api.get(`/admin/reportes/curso/${cursoId}/estudiantes${params}`);
+        return response.data;
+    },
+
+    getEstudiantesPorCiclo: async (cicloId, estado = null) => {
+        const params = estado ? `?estado=${estado}` : '';
+        const response = await api.get(`/admin/reportes/estudiantes-por-ciclo/${cicloId}${params}`);
         return response.data;
     }
 };
