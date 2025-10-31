@@ -30,15 +30,28 @@ export const CarreraNodo = ({ data }) => {
     );
 };
 
-export const CicloNodo = ({ data }) => {
+export const CicloNodo = ({ data, onVerEstudiantes }) => {
     const getColorByPromedio = (promedio) => {
         if (promedio >= 16) return 'from-green-500 to-green-600 border-green-300';
         if (promedio >= 13) return 'from-green-500 to-green-600 border-green-300';
         return 'from-red-500 to-red-600 border-red-300';
     };
 
+    const handleVerEstudiantes = (e) => {
+        e.stopPropagation();
+        
+        // No hacer nada si hay cursos pendientes
+        if (data.cursos_pendientes) {
+            return;
+        }
+        
+        if (onVerEstudiantes) {
+            onVerEstudiantes(data.id, data.nombre);
+        }
+    };
+
     return (
-        <aside className={`px-3 py-2 shadow-md rounded-lg bg-gradient-to-r ${getColorByPromedio(data.promedio)} text-white border-2 min-w-[180px] relative`}>
+        <aside className={`group px-3 py-2 shadow-md rounded-lg bg-gradient-to-r ${getColorByPromedio(data.promedio)} text-white border-2 min-w-[180px] relative transition-all duration-200`}>
             <Handle
                 type="target"
                 position={Position.Left}
@@ -61,6 +74,8 @@ export const CicloNodo = ({ data }) => {
                     height: 12,
                 }}
             />
+            
+            {/* Contenido */}
             <div className="flex items-center justify-between">
                 <div>
                     <div className="font-semibold">{data.nombre}</div>
@@ -69,23 +84,43 @@ export const CicloNodo = ({ data }) => {
                         {data.estudiantes_count} estudiantes | Promedio: {data.promedio}
                     </div>
                     <div className="text-xs opacity-80">
-                        <span className="text-white">{data.aprobados || 0} Aprobados</span> | <span className="text-red-500">{data.desaprobados || 0} Desaprobados</span>
+                        {data.cursos_pendientes ? (
+                            <span className="text-orange-500">Promedio: Pendiente de cursos</span>
+                        ) : (
+                            <>
+                                <span className="text-white">{data.aprobados || 0} Aprobados</span> | <span className="text-red-500">{data.desaprobados || 0} Desaprobados</span>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
+            
             <TrendingUp className="w-5 h-5 absolute top-1 right-1 bg-white text-blue-500 p-1 rounded-md" />
+            
+            {/* Botón oculto que aparece al pasar el mouse - igual que CursoNodo */}
+            <button
+                onClick={handleVerEstudiantes}
+                disabled={data.cursos_pendientes}
+                className={`
+                    absolute -bottom-2 -right-2 p-1 rounded-sm
+                    transition-opacity duration-300
+                    ${data.cursos_pendientes 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }
+                `}
+                title={data.cursos_pendientes ? "Pendiente de cursos" : "Ver estudiantes"}
+            >
+                <MdOutlineViewInAr className="w-4 h-4" />
+            </button>
         </aside>
     );
 };
 export const CursoNodo = ({ data, onVerEstudiantes }) => {
     const handleVerEstudiantes = (e) => {
         e.stopPropagation();
-        console.log('🎯 CursoNodo - handleVerEstudiantes ejecutado:', { data, onVerEstudiantes });
         if (onVerEstudiantes) {
-            console.log('✅ Ejecutando onVerEstudiantes con:', data.id, data.nombre);
             onVerEstudiantes(data.id, data.nombre);
-        } else {
-            console.log('❌ onVerEstudiantes no está definido');
         }
     };
 
