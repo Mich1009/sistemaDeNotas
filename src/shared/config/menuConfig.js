@@ -1,17 +1,4 @@
-import {
-    Users,
-    BookOpen,
-    GraduationCap,
-    Folder,
-    FileText,
-    Settings,
-    BarChart3,
-    Home,
-    Calendar,
-    Award,
-    User,
-    HeartPulse,
-} from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Folder, FileText, Settings, BarChart3, Home, Calendar, Award, User, HeartPulse } from 'lucide-react';
 
 // Importar componentes de Admin
 import AdminDashboard from '../../modules/admin/views/Dashboard.jsx';
@@ -20,22 +7,22 @@ import Courses from '../../modules/admin/views/Course.jsx';
 import Students from '../../modules/admin/views/Students.jsx';
 import Matriculas from '../../modules/admin/views/Matriculas';
 import AdminReports from '../../modules/admin/views/Reports.jsx';
-import Sistema from '../../modules/admin/views/Sistema.jsx'
 import Configuracion from '../../modules/admin/views/Configuracion.jsx';
 
 // Importar componentes de Teacher
-import TeacherDashboard from '../../modules/teacher/components/Dashboard';
-import MyCourses from '../../modules/teacher/components/MyCourses';
-import Grades from '../../modules/teacher/components/Grades';
-import TeacherSchedule from '../../modules/teacher/components/Schedule';
-import TeacherReports from '../../modules/teacher/components/TeacherReports';
-import TeacherProfile from '../../modules/teacher/components/Profile';
+import TeacherDashboard from '../../modules/teacher/views/Dashboard';
+import MyCourses from '../../modules/teacher/views/MyCourses';
+import Grades from '../../modules/teacher/views/Grades';
+import TeacherSchedule from '../../modules/teacher/views/Schedule';
+import Reports from '../../modules/teacher/views/Reports';
+import TeacherProfile from '../../modules/teacher/views/Profile';
 
 // Importar componentes de Student
-import StudentDashboard from '../../modules/student/components/Dashboard';
-import MyGrades from '../../modules/student/components/MyGrades';
-import StudentSchedule from '../../modules/student/components/Schedule';
-import Profile from '../../modules/student/components/Profile';
+import StudentDashboard from '../../modules/student/views/Dashboard';
+import MyGrades from '../../modules/student/views/MyGrades';
+import CoursesStudent from '../../modules/student/views/MyCourses';
+import StudentSchedule from '../../modules/student/views/Schedule';
+import Profile from '../../modules/student/views/Profile';
 
 export const menuConfigs = {
     admin: [
@@ -75,12 +62,7 @@ export const menuConfigs = {
             icon: FileText,
             component: AdminReports
         },
-        {
-            id: 'systema',
-            label: 'Sistema',
-            icon: HeartPulse,
-            component: Sistema,
-        },
+
         {
             id: 'settings',
             label: 'Configuración',
@@ -117,7 +99,7 @@ export const menuConfigs = {
             id: 'reports',
             label: 'Reportes',
             icon: BarChart3,
-            component: TeacherReports
+            component: Reports
         },
         {
             id: 'profile',
@@ -138,6 +120,12 @@ export const menuConfigs = {
             label: 'Mis Calificaciones',
             icon: Award,
             component: MyGrades
+        },
+        {
+            id: 'courses',
+            label: 'Mis Cursos',
+            icon: BookOpen,
+            component: CoursesStudent
         },
         {
             id: 'schedule',
