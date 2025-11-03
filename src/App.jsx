@@ -7,6 +7,7 @@ import './index.css'
 import Login from './modules/auth/pages/Login';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import Unauthorized from './shared/components/Unauthorized';
+import PasswordReset from './modules/auth/pages/Recuperacion';
 
 // Página unificada para todos los roles
 import DashboardPage from './shared/pages/DashboardPage';
@@ -39,6 +40,9 @@ function App() {
 
                 {/* Ruta por defecto - redirigir al dashboard */}
                 <Route path="/" element={<DashboardRedirect />} />
+
+                {/* Ruta para cambiar la contraseña */}
+                <Route path="/password-reset" element={<PasswordReset />} />
 
                 {/* Redirección del dashboard principal */}
                 <Route path="/dashboard" element={<DashboardRedirect />} />

@@ -18,7 +18,7 @@ const Schedule = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [viewMode, setViewMode] = useState('week'); // 'week' or 'list'
+  const [viewMode, setViewMode] = useState('list'); // 'week' or 'list'
 
   useEffect(() => {
     loadCourses();
@@ -29,7 +29,96 @@ const Schedule = () => {
       setLoading(true);
       const response = await scheduleService.getSchedule();
       console.log('Courses response:', response); // Debug log
-      setCourses(response || []);
+      const data = Array.isArray(response) ? response : [];
+      const filtered = data.filter((course) => {
+        const cicloNombre = (course?.ciclo_nombre || course?.ciclo || '').toString().toLowerCase();
+        const cicloNumero = course?.ciclo_numero ?? course?.cicloNumero ?? course?.cicloId;
+        return (
+          cicloNumero === 6 ||
+          cicloNombre.includes('vi') ||
+          cicloNombre.includes('6')
+        );
+      });
+
+      // Fallback: horario fijo del VI ciclo (Lun–Vie)
+      const fallbackSixthCycle = [
+        {
+          id: 1,
+          nombre: 'Taller de Aplicaciones Móviles',
+          codigo: 'TAM601',
+          docente_nombre: 'Ing. Christian Duilin Puyo',
+          aula: 'Lab. Cómputo 01',
+          horas_semanales: 6,
+          ciclo_nombre: 'VI',
+          // Alineado a periodos de 45 min y recreo 18:00–18:20
+          horario: 'Lunes 14:15-15:45, Miércoles 18:20-19:50, Viernes 14:15-16:30'
+        },
+        {
+          id: 2,
+          nombre: 'Inteligencia de Negocios',
+          codigo: 'IN602',
+          docente_nombre: 'Prof. Jhon Saboya Fulca',
+          aula: 'Lab. Cómputo 04',
+          horas_semanales: 6,
+          ciclo_nombre: 'VI',
+          horario: 'Lunes 15:45-17:15, Jueves 15:45-17:45'
+        },
+        {
+          id: 3,
+          nombre: 'Oportunidades de Negocios',
+          codigo: 'OE603',
+          docente_nombre: 'Ing. Freddy Flores',
+          aula: 'Lab. Cómputo 02',
+          horas_semanales: 4,
+          ciclo_nombre: 'VI',
+          horario: 'Lunes 17:15-18:00, Lunes 18:20-19:05'
+        },
+        {
+          id: 4,
+          nombre: 'Experiencias Formativas',
+          codigo: 'EF604',
+          docente_nombre: 'Team Haro / Innovación',
+          aula: 'Lab. de Fabricación Digital',
+          horas_semanales: 4,
+          ciclo_nombre: 'VI',
+          horario: 'Martes 15:00-16:30'
+        },
+        {
+          id: 5,
+          nombre: 'Taller de Programación Web',
+          codigo: 'TPW605',
+          docente_nombre: 'Prof. Jhon Saboya Fulca',
+          aula: 'Lab. Cómputo 01',
+          horas_semanales: 6,
+          ciclo_nombre: 'VI',
+          horario: 'Martes 16:30-18:00, Martes 18:20-19:50, Miércoles 14:15-15:45, Viernes 16:30-18:00, Viernes 18:20-19:05'
+        },
+        {
+          id: 6,
+          nombre: 'Herramientas Multimedia',
+          codigo: 'HM606',
+          docente_nombre: 'Ing. Torres Arevalo',
+          aula: 'Lab. Cómputo 01',
+          horas_semanales: 6,
+          ciclo_nombre: 'VI',
+          horario: 'Miércoles 15:45-18:00, Jueves 14:15-15:45'
+        },
+        {
+          id: 7,
+          nombre: 'Solución de Problemas',
+          codigo: 'SP607',
+          docente_nombre: 'Ing. Freddy Flores',
+          aula: 'Lab. Cómputo 06',
+          horas_semanales: 4,
+          ciclo_nombre: 'VI',
+          horario: 'Jueves 17:15-18:00, Jueves 18:20-19:50'
+        }
+      ];
+
+      // Hardcode: forzar horario del VI ciclo para que se muestre ya
+      const finalCourses = fallbackSixthCycle;
+      console.log('[Horario] Cursos cargados (hardcoded VI ciclo, alineado 45m + recreo):', finalCourses);
+      setCourses(finalCourses);
     } catch (error) {
       console.error('Error loading courses:', error);
       toast.error('Error al cargar el horario');
@@ -39,16 +128,17 @@ const Schedule = () => {
     }
   };
 
-  const getWeekDates = (date) => {
-    const start = new Date(date);
-    const day = start.getDay();
-    const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que lunes sea el primer día
-    start.setDate(diff);
+    const getWeekDates = (date) => {
+    const base = new Date(date);
+    const day = base.getDay();
+    const diff = base.getDate() - day + (day === 0 ? -6 : 1); // Lunes como primer d�a
+    const monday = new Date(base.setDate(diff));
     
     const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const newDate = new Date(start);
-      newDate.setDate(start.getDate() + i);
+    // Solo Lunes a Viernes
+    for (let i = 0; i < 5; i++) {
+      const newDate = new Date(monday);
+      newDate.setDate(monday.getDate() + i);
       dates.push(newDate);
     }
     return dates;
@@ -65,23 +155,20 @@ const Schedule = () => {
   };
 
   const parseSchedule = (scheduleString) => {
-    if (!scheduleString) return [];
-    
-    // Formato esperado: "Lunes 08:00-10:00, Miércoles 14:00-16:00"
-    const scheduleItems = scheduleString.split(',').map(item => item.trim());
-    return scheduleItems.map(item => {
-      const parts = item.split(' ');
-      const day = parts[0];
-      const time = parts[1];
-      const [startTime, endTime] = time.split('-');
-      
-      return {
-        day,
-        startTime,
-        endTime,
-        fullSchedule: item
-      };
-    });
+    if (!scheduleString || typeof scheduleString !== 'string') return [];
+    const items = scheduleString.split(',').map(s => s.trim()).filter(Boolean);
+    const regex = /^([A-Za-zÁÉÍÓÚáéíóúÑñ]+)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/;
+    const parsed = [];
+    for (const item of items) {
+      const match = item.match(regex);
+      if (match) {
+        const [, day, startTime, endTime] = match;
+        parsed.push({ day, startTime, endTime, fullSchedule: item });
+      } else {
+        console.warn('[Horario] No coincide formato:', item);
+      }
+    }
+    return parsed;
   };
 
   const getCoursesForDay = (dayName) => {
@@ -93,7 +180,7 @@ const Schedule = () => {
   };
 
   const getCoursesForTime = (dayName, time) => {
-    return courses.filter(course => {
+    const result = courses.filter(course => {
       if (!course.horario) return false;
       const schedules = parseSchedule(course.horario);
       return schedules.some(schedule => {
@@ -109,17 +196,25 @@ const Schedule = () => {
         return currentMinutes >= startMinutes && currentMinutes < endMinutes;
       });
     });
+    // Debug básico para verificar coincidencias por celda
+    if (result.length > 0 && (time.endsWith('15') || time.endsWith('30'))) {
+      console.log(`[Horario] ${dayName} ${time} -> ${result.length} curso(s)`);
+    }
+    return result;
   };
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 7; hour <= 22; hour++) {
-      for (let min = 0; min < 60; min += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-        slots.push(timeString);
-      }
-    }
-    return slots;
+      const generateTimeSlots = () => {
+    // Periodos académicos de 45 minutos con recreo 18:00–18:20
+    return [
+      '14:15',
+      '15:00',
+      '15:45',
+      '16:30',
+      '17:15',
+      '18:00', // Recreo
+      '18:20',
+      '19:05',
+    ];
   };
 
   const navigateWeek = (direction) => {
@@ -137,39 +232,34 @@ const Schedule = () => {
     return date.toDateString() === today.toDateString();
   };
 
-  const CourseCard = ({ course, time }) => {
+  const CourseCard = ({ course, dayName, startTime }) => {
     const schedules = parseSchedule(course.horario);
-    const currentSchedule = schedules.find(s => s.day === getDayName(new Date()));
+    const currentSchedule = schedules.find(s => s.day === dayName && s.startTime === startTime);
+    const color = getCourseColor(course);
     
     return (
-      <div className="bg-white border border-secondary-200 rounded-lg p-3 mb-2 shadow-sm">
-        <div className="flex items-start justify-between">
+      <div
+        className="h-full rounded-lg p-3 shadow-sm"
+        style={{ backgroundColor: color.bg, borderLeft: `4px solid ${color.border}` }}
+      >
+        <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h4 className="font-semibold text-secondary-900 text-sm mb-1">
+            <h4 className="font-semibold text-sm" style={{ color: color.text }}>
               {course.nombre}
             </h4>
-            <p className="text-xs text-secondary-600 mb-1">
+            <p className="text-xs" style={{ color: color.text }}>
               {course.codigo}
             </p>
-            <div className="flex items-center text-xs text-secondary-500 space-x-2">
-              <div className="flex items-center">
-                <User className="w-3 h-3 mr-1" />
-                {course.docente_nombre}
-              </div>
-              {course.aula && (
-                <div className="flex items-center">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  {course.aula}
-                </div>
-              )}
-            </div>
+            {course.aula && (
+              <p className="text-xs mt-1" style={{ color: '#616161' }}>
+                <MapPin className="w-3 h-3 inline mr-1" />
+                {course.aula}
+              </p>
+            )}
           </div>
           <div className="text-right">
-            <div className="text-xs font-medium text-primary-600">
+            <div className="text-sm font-bold" style={{ color: color.text }}>
               {currentSchedule?.startTime} - {currentSchedule?.endTime}
-            </div>
-            <div className="text-xs text-secondary-500">
-              {course.horas_semanales}h/sem
             </div>
           </div>
         </div>
@@ -180,6 +270,44 @@ const Schedule = () => {
   const WeekView = () => {
     const weekDates = getWeekDates(currentWeek);
     const timeSlots = generateTimeSlots();
+
+    const timeToMin = (t) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    // Índice precalculado: clave "Día|HH:MM" -> cursos que inician ahí
+    const scheduleIndex = React.useMemo(() => {
+      const idx = {};
+      courses.forEach((course) => {
+        const items = parseSchedule(course.horario);
+        items.forEach((it) => {
+          const key = `${it.day}|${it.startTime}`;
+          if (!idx[key]) idx[key] = [];
+          idx[key].push(course);
+        });
+      });
+      return idx;
+    }, [courses]);
+
+    // Set de celdas cubiertas por un bloque que comenzó en filas anteriores
+    const coveredCells = React.useMemo(() => {
+      const covered = new Set();
+      courses.forEach((course) => {
+        const items = parseSchedule(course.horario);
+        items.forEach((it) => {
+          const startMin = timeToMin(it.startTime);
+          const endMin = timeToMin(it.endTime);
+          timeSlots.forEach((slot, idx) => {
+            const slotMin = timeToMin(slot);
+            if (slotMin > startMin && slotMin < endMin) {
+              covered.add(`${it.day}|${slot}`);
+            }
+          });
+        });
+      });
+      return covered;
+    }, [courses, timeSlots]);
 
     return (
       <div className="space-y-4">
@@ -225,7 +353,6 @@ const Schedule = () => {
                     }`}>
                       <div>
                         <div className="font-semibold">{getDayShortName(date)}</div>
-                        <div className="text-xs">{date.getDate()}</div>
                       </div>
                     </th>
                   ))}
@@ -234,19 +361,52 @@ const Schedule = () => {
               <tbody>
                 {timeSlots.map((time, timeIndex) => (
                   <tr key={timeIndex} className="border-t border-secondary-200">
-                    <td className="px-4 py-2 text-sm text-secondary-600 font-medium">
-                      {time}
+                    <td className={`px-4 py-2 text-sm font-medium ${time === '18:00' ? 'text-yellow-700' : 'text-secondary-600'}`}>
+                      {time === '18:00' ? '18:00 • Recreo' : time}
                     </td>
                     {weekDates.map((date, dayIndex) => {
                       const dayName = getDayName(date);
-                      const coursesAtTime = getCoursesForTime(dayName, time);
-                      
+                      const key = `${dayName}|${time}`;
+
+                      // Fila de recreo: pintar celda vacía con fondo y sin cursos
+                      if (time === '18:00') {
+                        return (
+                          <td key={dayIndex} className="px-2 py-2 bg-secondary-100" />
+                        );
+                      }
+
+                      // Si esta celda está cubierta por un bloque previo, no renderizar TD
+                      if (coveredCells.has(key)) {
+                        return null;
+                      }
+
+                      const coursesStartingNow = scheduleIndex[key] || [];
+
+                      // Calcular rowSpan según los periodos de 45 min hasta el endTime
+                      let rowSpan = 1;
+                      if (coursesStartingNow.length > 0) {
+                        const spans = coursesStartingNow.map((course) => {
+                          const it = parseSchedule(course.horario).find((s) => s.day === dayName && s.startTime === time);
+                          if (!it) return 1;
+                          const startMin = timeToMin(it.startTime);
+                          const endMin = timeToMin(it.endTime);
+                          const count = timeSlots.filter((t) => {
+                            const mins = timeToMin(t);
+                            return mins >= startMin && mins < endMin;
+                          }).length;
+                          return Math.max(1, count);
+                        });
+                        rowSpan = Math.max(...spans);
+                      }
+
                       return (
-                        <td key={dayIndex} className={`px-2 py-1 h-16 ${
-                          isToday(date) ? 'bg-primary-25' : ''
-                        }`}>
-                          {coursesAtTime.map((course, courseIndex) => (
-                            <CourseCard key={courseIndex} course={course} time={time} />
+                        <td
+                          key={dayIndex}
+                          rowSpan={rowSpan}
+                          className={`px-2 py-1 align-top ${isToday(date) ? 'bg-primary-25' : ''}`}
+                        >
+                          {coursesStartingNow.map((course, idx) => (
+                            <CourseCard key={`${key}-${idx}`} course={course} dayName={dayName} startTime={time} />
                           ))}
                         </td>
                       );
@@ -345,13 +505,13 @@ const Schedule = () => {
                               <div className="text-lg font-bold text-primary-600">
                                 {daySchedule?.startTime} - {daySchedule?.endTime}
                               </div>
-                              <div className="text-xs text-secondary-500">
-                                {course.horas_semanales} horas/semana
-                              </div>
+                            <div className="text-xs text-secondary-500">
+                              {course.horas_semanales} horas/semana
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      );
+                    })}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -458,3 +618,21 @@ const Schedule = () => {
 };
 
 export default Schedule;
+
+
+
+  // Color por curso para mejorar legibilidad
+  const getCourseColor = (course) => {
+    const code = (course?.codigo || '').toUpperCase();
+    if (code.startsWith('TAM')) return { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20' };
+    if (code.startsWith('TPW')) return { bg: '#fff9c4', border: '#f9a825', text: '#795548' };
+    if (code.startsWith('HM')) return { bg: '#e3f2fd', border: '#1565c0', text: '#0d47a1' };
+    if (code.startsWith('IN')) return { bg: '#f3e5f5', border: '#7b1fa2', text: '#4a148c' };
+    if (code.startsWith('OE')) return { bg: '#ffe0b2', border: '#ef6c00', text: '#e65100' };
+    if (code.startsWith('EF')) return { bg: '#e0f2f1', border: '#00897b', text: '#00695c' };
+    if (code.startsWith('SP')) return { bg: '#ffebee', border: '#c62828', text: '#b71c1c' };
+    return { bg: '#f5f5f5', border: '#757575', text: '#424242' };
+  };
+
+
+
