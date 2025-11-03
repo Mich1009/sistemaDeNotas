@@ -15,6 +15,8 @@ export const useReportesDinamicos = () => {
     });
     const [añosDisponibles, setAñosDisponibles] = useState([]);
     const [carreras, setCarreras] = useState([]);
+    
+    // Estado para estadísticas básicas calculadas
     const [estadisticas, setEstadisticas] = useState({
         total_carreras: 0,
         total_ciclos: 0,
@@ -25,14 +27,12 @@ export const useReportesDinamicos = () => {
     // Estados para el modal de estudiantes
     const [modalEstudiantes, setModalEstudiantes] = useState({
         isOpen: false,
+        tipo: null, // 'curso' o 'ciclo'
         cursoId: null,
-        cursoNombre: ''
+        cursoNombre: '',
+        cicloId: null,
+        cicloNombre: ''
     });
-
-    // Debug: Monitorear cambios en modalEstudiantes
-    useEffect(() => {
-        console.log('🔄 Estado modalEstudiantes cambió:', modalEstudiantes);
-    }, [modalEstudiantes]);
 
     const nodeWidth = 200;
     const nodeHeight = 100;
@@ -109,8 +109,6 @@ export const useReportesDinamicos = () => {
 
     // Función para generar nodos y edges desde datos jerárquicos
     const generarGrafo = useCallback((data) => {
-        console.log('Generando grafo con datos:', data);
-
         const newNodes = [];
         const newEdges = [];
 
@@ -121,7 +119,6 @@ export const useReportesDinamicos = () => {
 
         // Verificar que tenemos datos válidos
         if (!data || !Array.isArray(data) || data.length === 0) {
-            console.log('No hay datos válidos para generar el grafo');
             setNodes([]);
             setEdges([]);
             return;
@@ -233,22 +230,9 @@ export const useReportesDinamicos = () => {
             }
         });
 
-        console.log('Nodos generados:', newNodes.length);
-        console.log('Aristas generadas:', newEdges.length);
-
-        setEstadisticas({
-            total_carreras: data.length,
-            total_ciclos: totalCiclos,
-            total_cursos: totalCursos,
-            promedio_general: contadorPromedios > 0 ? (sumaPromedios / contadorPromedios).toFixed(2) : 0
-        });
-
         // Aplicar layout de Dagre
         try {
             const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, newEdges, 'LR');
-
-            console.log('Nodos con layout aplicado:', layoutedNodes);
-            console.log('Aristas con layout aplicado:', layoutedEdges);
 
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
@@ -274,6 +258,36 @@ export const useReportesDinamicos = () => {
             if (response.success) {
                 generarGrafo(response.data);
                 setCarreras(response.data);
+                
+                // Calcular estadísticas básicas
+                const totalCarreras = response.data.length;
+                const totalCiclos = response.data.reduce((acc, carrera) => acc + carrera.ciclos.length, 0);
+                const totalCursos = response.data.reduce((acc, carrera) => {
+                    return acc + carrera.ciclos.reduce((cicloAcc, ciclo) => cicloAcc + ciclo.cursos.length, 0);
+                }, 0);
+                
+                // Calcular promedio general (simplificado)
+                let totalNotas = 0;
+                let contadorNotas = 0;
+                response.data.forEach(carrera => {
+                    carrera.ciclos.forEach(ciclo => {
+                        ciclo.cursos.forEach(curso => {
+                            if (curso.promedio_curso && curso.promedio_curso > 0) {
+                                totalNotas += curso.promedio_curso;
+                                contadorNotas++;
+                            }
+                        });
+                    });
+                });
+                
+                const promedioGeneral = contadorNotas > 0 ? (totalNotas / contadorNotas).toFixed(2) : 0;
+                
+                setEstadisticas({
+                    total_carreras: totalCarreras,
+                    total_ciclos: totalCiclos,
+                    total_cursos: totalCursos,
+                    promedio_general: promedioGeneral
+                });
             }
         } catch (error) {
             toast.error('Error al cargar datos de reportes');
@@ -283,47 +297,7 @@ export const useReportesDinamicos = () => {
         }
     }, [filtros.año, generarGrafo]);
 
-    // Función para exportar notas
-    const exportarNotas = async (tipo, cicloId = null) => {
-        try {
-            let url;
-            let filename;
 
-            if (tipo === 'todos') {
-                url = '/admin/reportes/exportar/notas-todos-ciclos?formato=excel';
-                filename = `notas_todos_ciclos_${new Date().toISOString().split('T')[0]}.xlsx`;
-            } else {
-                url = `/admin/reportes/exportar/notas-por-ciclo/${cicloId}?formato=excel`;
-                filename = `notas_ciclo_${cicloId}_${new Date().toISOString().split('T')[0]}.xlsx`;
-            }
-
-            const response = await api.get(`${url}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(downloadUrl);
-
-                toast.success('Archivo descargado exitosamente');
-            } else {
-                throw new Error('Error en la descarga');
-            }
-        } catch (error) {
-            toast.error('Error al exportar notas');
-            console.error('Error:', error);
-        }
-    };
 
     const onConnect = useCallback(
         (params) => setEdges((eds) => addEdge(params, eds)),
@@ -335,21 +309,44 @@ export const useReportesDinamicos = () => {
     };
 
     // Funciones para el modal de estudiantes
-    const abrirModalEstudiantes = useCallback((cursoId, cursoNombre) => {
-        console.log('🔍 abrirModalEstudiantes ejecutado:', { cursoId, cursoNombre });
-        setModalEstudiantes({
-            isOpen: true,
-            cursoId,
-            cursoNombre
-        });
-        console.log('📝 Estado modalEstudiantes actualizado');
+    const abrirModalEstudiantes = useCallback((entityId, entityNombre, tipo = null) => {
+        // Auto-detectar tipo si no se proporciona
+        let tipoDetectado = tipo;
+        if (!tipoDetectado) {
+            // Los ciclos suelen tener nombres cortos como "I", "II", "III", "IV", "V", "VI", etc.
+            // Los cursos tienen nombres más largos y descriptivos
+            tipoDetectado = entityNombre && entityNombre.length <= 3 && /^[IVX]+$/.test(entityNombre) ? 'ciclo' : 'curso';
+        }
+        
+        if (tipoDetectado === 'ciclo') {
+            setModalEstudiantes({
+                isOpen: true,
+                tipo: 'ciclo',
+                cursoId: null,
+                cursoNombre: '',
+                cicloId: entityId,
+                cicloNombre: entityNombre
+            });
+        } else {
+            setModalEstudiantes({
+                isOpen: true,
+                tipo: 'curso',
+                cursoId: entityId,
+                cursoNombre: entityNombre,
+                cicloId: null,
+                cicloNombre: ''
+            });
+        }
     }, []);
 
     const cerrarModalEstudiantes = useCallback(() => {
         setModalEstudiantes({
             isOpen: false,
+            tipo: null,
             cursoId: null,
-            cursoNombre: ''
+            cursoNombre: '',
+            cicloId: null,
+            cicloNombre: ''
         });
     }, []);
 
@@ -361,8 +358,8 @@ export const useReportesDinamicos = () => {
         filtros,
         añosDisponibles,
         carreras,
-        estadisticas,
         modalEstudiantes,
+        estadisticas,
         
         // Funciones de ReactFlow
         onNodesChange,
@@ -371,7 +368,6 @@ export const useReportesDinamicos = () => {
         
         // Funciones de negocio
         cargarDatos,
-        exportarNotas,
         actualizarFiltros,
         generarGrafo,
         
