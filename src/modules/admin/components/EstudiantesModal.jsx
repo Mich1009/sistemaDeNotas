@@ -194,12 +194,8 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre, cicloId, cicl
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold flex items-center gap-2">
-                                <Users className="w-6 h-6" />
-                                {tipo === 'curso' ? 'Estudiantes del Curso' : 'Estudiantes del Ciclo'}
-                            </h2>
-                            <p className="text-blue-100 mt-1">{tipo === 'curso' ? cursoNombre : cicloNombre}</p>
+                        <div className='flex items-center gap-3'>
+                            <h2 className="text-2xl font-bold flex items-center gap-2"><Users className="w-6 h-6" />{tipo === 'curso' ? 'Curso' : 'Ciclo'} - {tipo === 'curso' ? cursoNombre : cicloNombre}</h2>
                         </div>
                         <div className="flex items-center mr-4">
                             <button
@@ -367,7 +363,7 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre, cicloId, cicl
                                     </button>
                                 </div>
                             </div>
-                            <div className="p-6">
+                            <div className="p-4">
                                 {tipo === 'curso' ? (
                                     // Vista detallada para cursos
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -412,8 +408,8 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre, cicloId, cicl
                                     </div>
                                 ) : (
                                     // Vista simplificada para ciclos
-                                    <div className="space-y-4">
-                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                    <div>
+                                        <div className="bg-gray-50 p-2 rounded-lg">
                                             <h4 className="font-medium text-gray-900 mb-2">Información del Ciclo</h4>
                                             <p className="text-sm text-gray-600">
                                                 Este promedio representa el promedio ponderado de todos los cursos del ciclo.
@@ -421,7 +417,7 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre, cicloId, cicl
                                         </div>
                                         
                                         {estudianteSeleccionado.cursos_detalle && (
-                                            <div>
+                                            <div className='mt-2'>
                                                 <h4 className="font-medium text-gray-900 mb-3">Cursos del Ciclo</h4>
                                                 <div className="space-y-2">
                                                     {estudianteSeleccionado.cursos_detalle.map((curso, index) => (
@@ -429,7 +425,7 @@ const EstudiantesModal = ({ isOpen, onClose, cursoId, cursoNombre, cicloId, cicl
                                                             <span className="text-sm">{curso.nombre}</span>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium">{curso.promedio.toFixed(2)}</span>
-                                                                <span className="text-xs text-gray-500">({curso.creditos} créditos)</span>
+                
                                                             </div>
                                                         </div>
                                                     ))}

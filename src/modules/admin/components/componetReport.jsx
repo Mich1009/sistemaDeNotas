@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart3, TrendingUp, BookOpen, } from 'lucide-react';
-import ReactFlow, { Handle, Position } from 'reactflow';
+import ReactFlow, { Handle, Position, Panel } from 'reactflow';
 import { MdOutlineViewInAr } from "react-icons/md";
 
 // Componentes de nodos personalizados
@@ -39,12 +39,12 @@ export const CicloNodo = ({ data, onVerEstudiantes }) => {
 
     const handleVerEstudiantes = (e) => {
         e.stopPropagation();
-        
+
         // No hacer nada si hay cursos pendientes
         if (data.cursos_pendientes) {
             return;
         }
-        
+
         if (onVerEstudiantes) {
             onVerEstudiantes(data.id, data.nombre);
         }
@@ -74,14 +74,14 @@ export const CicloNodo = ({ data, onVerEstudiantes }) => {
                     height: 12,
                 }}
             />
-            
+
             {/* Contenido */}
             <div className="flex items-center justify-between">
                 <div>
                     <div className="font-semibold">{data.nombre}</div>
                     <div className="text-sm opacity-90">Año: {data.año} | Ciclo: {data.numero}</div>
                     <div className="text-xs opacity-80">
-                        {data.estudiantes_count} estudiantes | Promedio: {data.promedio}
+                        {data.estudiantes_count} estudiantes | Promedio: {parseFloat(data.promedio || 0).toFixed(2)}
                     </div>
                     <div className="text-xs opacity-80">
                         {data.cursos_pendientes ? (
@@ -94,9 +94,9 @@ export const CicloNodo = ({ data, onVerEstudiantes }) => {
                     </div>
                 </div>
             </div>
-            
+
             <TrendingUp className="w-5 h-5 absolute top-1 right-1 bg-white text-blue-500 p-1 rounded-md" />
-            
+
             {/* Botón oculto que aparece al pasar el mouse - igual que CursoNodo */}
             <button
                 onClick={handleVerEstudiantes}
@@ -104,8 +104,8 @@ export const CicloNodo = ({ data, onVerEstudiantes }) => {
                 className={`
                     absolute -bottom-2 -right-2 p-1 rounded-sm
                     transition-opacity duration-300
-                    ${data.cursos_pendientes 
-                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                    ${data.cursos_pendientes
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                         : 'bg-blue-500 text-white hover:bg-blue-600'
                     }
                 `}
@@ -168,5 +168,109 @@ export const CursoNodo = ({ data, onVerEstudiantes }) => {
     );
 };
 
-// componente de vista de estudiante
+// componente de panel de información
+export const PanelInfo = () => {
+    return (
+        <Panel position="top-right" className="bg-white p-3 rounded-lg shadow-lg" >
+            <div className="text-sm space-y-1">
+                <div className="font-semibold text-gray-800">Leyenda</div>
+                <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                    <span className="text-xs">Carreras</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <span className="text-xs">Ciclos (Promedio ≥13)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-red-500 rounded"></div>
+                    <span className="text-xs">Ciclos (Promedio &lt;13)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-gray-200 rounded"></div>
+                    <span className="text-xs">Cursos</span>
+                </div>
+            </div>
+        </Panel >
+    )
+}
 
+
+// Panel de graficos para ver el ciclo con mas puntos
+export const PanelCicloPuntos = ({ carreras = [], filtros = {} }) => {
+    // Extraer todos los ciclos de todas las carreras
+    const todosLosCiclos = carreras.flatMap(carrera => 
+        carrera.ciclos?.map(ciclo => ({
+            ...ciclo,
+            carrera_nombre: carrera.nombre
+        })) || []
+    );
+
+    // Ordenar ciclos por promedio descendente (incluir todos los ciclos, incluso con promedio 0)
+    const ciclosOrdenados = todosLosCiclos
+        .filter(ciclo => ciclo.promedio !== null && ciclo.promedio !== undefined)
+        .sort((a, b) => parseFloat(b.promedio || 0) - parseFloat(a.promedio || 0));
+
+    // Función para obtener color según el promedio
+    const getColorByPromedio = (promedio) => {
+        const promedioNum = parseFloat(promedio);
+        if (promedioNum >= 16) return 'bg-green-600';
+        if (promedioNum >= 13) return 'bg-green-500';
+        if (promedioNum >= 11) return 'bg-yellow-500';
+        return 'bg-red-500';
+    };
+
+    return (
+        <Panel position="bottom-left" className="bg-white p-3 rounded-lg shadow-lg max-w-sm" >
+            <aside className="text-sm space-y-2">
+                <h4 className="font-semibold text-gray-800">
+                    Promedios por Ciclos {filtros.año && `- ${filtros.año}`}
+                </h4>
+                
+                {ciclosOrdenados.length === 0 ? (
+                    <div className="text-xs text-gray-500 italic">
+                        No hay datos de ciclos disponibles
+                    </div>
+                ) : (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {ciclosOrdenados.slice(0, 8).map((ciclo, index) => (
+                            <div key={`${ciclo.id}-${index}`} className="flex items-center justify-between space-x-2">
+                                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                    <div className={`w-3 h-3 rounded ${getColorByPromedio(ciclo.promedio)}`}></div>
+                                    <span className="text-xs truncate">
+                                        {ciclo.nombre} - {ciclo.año}
+                                    </span>
+                                </div>
+                                <span className={`text-xs text-white px-2 py-0.5 rounded ${getColorByPromedio(ciclo.promedio)}`}>
+                                    {parseFloat(ciclo.promedio || 0).toFixed(2)}
+                                </span>
+                            </div>
+                        ))}
+                        {ciclosOrdenados.length > 8 && (
+                            <div className="text-xs text-gray-500 italic text-center pt-1">
+                                +{ciclosOrdenados.length - 8} ciclos más
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {ciclosOrdenados.length > 0 && (
+                    <div className="border-t pt-2 mt-2">
+                        <div className="text-xs text-gray-600">
+                            <div className="flex justify-between">
+                                <span>Total ciclos:</span>
+                                <span className="font-medium">{ciclosOrdenados.length}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Promedio más alto:</span>
+                                <span className="font-medium text-green-600">
+                                    {parseFloat(ciclosOrdenados[0].promedio || 0).toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </aside>
+        </Panel >
+    )
+}

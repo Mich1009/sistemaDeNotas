@@ -3,7 +3,8 @@ import ReactFlow, { MiniMap, Controls, Background, Panel, ReactFlowProvider, Mar
 import 'reactflow/dist/style.css';
 import { Filter, RefreshCw, Network } from 'lucide-react';
 import { useReportesDinamicos } from '../hooks';
-import { CarreraNodo, CicloNodo, CursoNodo } from './componetReport';
+import { CarreraNodo, CicloNodo, CursoNodo, PanelInfo, PanelCicloPuntos } from './componetReport';
+import { interpolateSpectral } from 'd3';
 
 // Componente wrapper memoizado para CursoNodo
 const CursoNodoWrapper = React.memo(({ onVerEstudiantes, ...props }) => {
@@ -24,6 +25,7 @@ const ReportesDinamicos = ({ abrirModalEstudiantes: abrirModalEstudiantesProp })
         loading,
         filtros,
         añosDisponibles,
+        carreras,
         modalEstudiantes,
         estadisticas,
 
@@ -155,7 +157,7 @@ const ReportesDinamicos = ({ abrirModalEstudiantes: abrirModalEstudiantesProp })
                     elementsSelectable={true}
                     proOptions={{ hideAttribution: true }}
                 >
-                    <Controls position='top-left' />
+                    <Controls position='top-left'/>
                     <MiniMap
                         nodeColor={(node) => {
                             switch (node.type) {
@@ -169,28 +171,8 @@ const ReportesDinamicos = ({ abrirModalEstudiantes: abrirModalEstudiantesProp })
                     />
                     <Background variant="dots" gap={12} size={1} />
 
-                    {/* Panel de información */}
-                    <Panel position="top-right" className="bg-white p-3 rounded-lg shadow-lg">
-                        <div className="text-sm space-y-1">
-                            <div className="font-semibold text-gray-800">Leyenda</div>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                                <span className="text-xs">Carreras</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                                <span className="text-xs">Ciclos (Promedio ≥13)</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-red-500 rounded"></div>
-                                <span className="text-xs">Ciclos (Promedio &lt;13)</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-gray-400 rounded"></div>
-                                <span className="text-xs">Cursos</span>
-                            </div>
-                        </div>
-                    </Panel>
+                    <PanelInfo />
+                    <PanelCicloPuntos carreras={carreras} filtros={filtros} />
                 </ReactFlow>
             </ReactFlowProvider>
         </div>

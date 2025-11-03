@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    ChevronDown, 
-    ChevronUp, 
-    BookOpen, 
-    TrendingUp, 
+import {
+    ChevronDown,
+    ChevronUp,
+    BookOpen,
+    TrendingUp,
     Award,
     Calendar,
     Users,
@@ -27,7 +27,7 @@ const AcademicPerformance = () => {
             setLoading(true);
             const response = await academicPerformanceService.getAcademicPerformance();
             setAcademicData(response || []);
-            
+
             // Inicializar cycleCoursesData con los cursos que ya vienen en la respuesta
             const coursesData = {};
             if (response && Array.isArray(response)) {
@@ -54,11 +54,11 @@ const AcademicPerformance = () => {
 
     const getGradeColor = (promedio) => {
         if (promedio === null || promedio === undefined) return 'text-gray-500';
-        if (promedio >= 16) return 'text-green-600 font-semibold';
-        if (promedio >= 14) return 'text-blue-600 font-semibold';
-        if (promedio >= 11) return 'text-yellow-600 font-semibold';
+        if (promedio >= 18) return 'text-green-600 font-semibold';
+        if (promedio >= 13) return 'text-blue-600 font-semibold';
         return 'text-red-600 font-semibold';
     };
+
 
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
@@ -79,7 +79,7 @@ const AcademicPerformance = () => {
 
     const formatGrade = (grade) => {
         if (grade === null || grade === undefined) return '-';
-        return typeof grade === 'number' ? grade.toFixed(1) : grade;
+        return typeof grade === 'number' ? grade.toFixed(2) : grade;
     };
 
     if (loading) {
@@ -120,7 +120,7 @@ const AcademicPerformance = () => {
                     {academicData.map((cycle) => (
                         <div key={cycle.ciclo_id} className="border border-secondary-200 rounded-lg overflow-hidden">
                             {/* Fila del ciclo */}
-                            <div 
+                            <div
                                 className="bg-secondary-50 p-4 cursor-pointer hover:bg-secondary-100 transition-colors"
                                 onClick={() => toggleCycleExpansion(cycle.ciclo_id)}
                             >
@@ -137,7 +137,7 @@ const AcademicPerformance = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center space-x-4">
                                             <div className="flex items-center">
                                                 <Users className="w-4 h-4 text-secondary-500 mr-1" />
@@ -145,7 +145,7 @@ const AcademicPerformance = () => {
                                                     {cycle.numero_cursos} curso{cycle.numero_cursos !== 1 ? 's' : ''}
                                                 </span>
                                             </div>
-                                            
+
                                             <div className="flex items-center">
                                                 <Target className="w-4 h-4 text-secondary-500 mr-1" />
                                                 <span className={`text-lg font-bold ${getGradeColor(cycle.promedio_ciclo)}`}>
