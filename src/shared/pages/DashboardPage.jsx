@@ -40,22 +40,22 @@ const DashboardPage = () => {
     return (
         <div className="flex h-screen bg-gray-100">
             {/* Sidebar */}
-            <section className={clsx("bg-white h-screen shadow-lg flex flex-col transition-all duration-300 ease-in-out", sidebarCollapsed ? "w-17" : "w-64" )}>
+            <section className={clsx("bg-white h-screen shadow-lg flex flex-col transition-all duration-300 ease-in-out", sidebarCollapsed ? "w-16" : "w-64" )}>
                 {/* Header del sidebar */}
-                <header className="p-4 border-b border-secondary-200 text-center relative">
+                <header className={`p-4 border-b border-secondary-200 text-center relative`}>
                     <button
                         onClick={toggleSidebar}
                         className="absolute top-4 right-4 p-1 hover:bg-secondary-200 rounded-md transition-colors duration-300"
                     >
                         {sidebarCollapsed ? (
-                            <Menu className="w-5 h-5 text-secondary-600" />
+                            <Menu className="w-5 h-5 text-secondary-600 mr-1" />
                         ) : (
                             <SidebarClose className="w-5 h-5 text-secondary-600" />
                         )}
                     </button>
 
                     {/* Logo */}
-                    <div className='flex items-center justify-center'>
+                    <div className={`flex items-center justify-center ${sidebarCollapsed ? 'mt-10' : ''}`}>
                         {logoLoading ? (
                             <div className="w-12 h-12 bg-gray-200 rounded animate-pulse"></div>
                         ) : (
@@ -81,7 +81,7 @@ const DashboardPage = () => {
                 </header>
 
                 {/* Navegación */}
-                <nav className="flex-1 p-4">
+                <nav className="flex-1 p-2">
                     <ul className="space-y-1">
                         {menuItems.map((item) => {
                             const Icon = item.icon;
@@ -91,12 +91,12 @@ const DashboardPage = () => {
                                 <li key={item.id}>
                                     <button
                                         onClick={() => setActiveSection(item.id)}
-                                        className={`flex items-center gap-2 w-full px-2 py-2 rounded-md hover:bg-primary-50 hover:text-primary-700 
+                                        className={`flex items-center gap-2 w-full px-3 py-2 rounded-md hover:bg-primary-50 hover:text-primary-700 
                                                     ${isActive ? 'bg-primary-100 text-primary-600 font-semibold' : ''}
                                                 `}
                                         title={sidebarCollapsed ? item.label : ''}
                                     >
-                                        <Icon className={`w-5 h-5 ${sidebarCollapsed ? 'min-w-5 min-h-5' : ''}`} />
+                                        <Icon className={`w-5 h-5 ${sidebarCollapsed ? 'min-w-5 min-h-6 m-auto' : ''}`} />
                                         {!sidebarCollapsed && (
                                             <span className='whitespace-nowrap'>
                                                 {item.label}
