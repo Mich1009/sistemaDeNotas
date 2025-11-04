@@ -14,7 +14,7 @@ const Login = () => {
   const { login, isAuthenticated, setLoading, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [logoUrl, setLogoUrl] = useState(upnoteLogo); // Estado para el logo
+  const [logoUrl, setLogoUrl] = useState(upnoteLogo);
 
   const {
     register,
@@ -24,22 +24,17 @@ const Login = () => {
 
   const recoveryForm = useForm();
 
-  // Cargar configuración del logo
+  // Cargar el logo desde configuración pública
   useEffect(() => {
-    const loadLogoConfig = async () => {
+    const fetchLogo = async () => {
       try {
-        const logoConfig = await configService.getLoginLogo();
-        if (logoConfig && logoConfig.value) {
-          setLogoUrl(logoConfig.value);
-        }
-      } catch (error) {
-        console.error('Error al cargar la configuración del logo:', error);
-        // Mantener el logo por defecto en caso de error
+        const config = await configService.getLoginLogo();
+        setLogoUrl(config?.value || upnoteLogo);
+      } catch (err) {
         setLogoUrl(upnoteLogo);
       }
     };
-
-    loadLogoConfig();
+    fetchLogo();
   }, []);
 
   // Redirigir si ya está autenticado
@@ -107,7 +102,6 @@ const Login = () => {
             alt="UPNote"
             className="mx-auto w-16 h-16 rounded-full mb-4 ring-2 ring-primary-600 object-cover"
             onError={() => {
-              console.log('Error al cargar la imagen, usando logo por defecto');
               setLogoUrl(upnoteLogo);
             }}
           />

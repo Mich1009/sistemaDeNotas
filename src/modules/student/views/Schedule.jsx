@@ -618,6 +618,56 @@ const Schedule = () => {
     );
   };
 
+  // Vista en lista de cursos con detalles básicos
+  const ListView = () => {
+    if (!courses || courses.length === 0) {
+      return (
+        <div className="card p-6">
+          <div className="flex items-center text-secondary-700">
+            <AlertCircle className="w-5 h-5 mr-2 text-yellow-500" />
+            <span>No hay cursos para mostrar en tu horario.</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-4">
+        {courses.map((course, idx) => (
+          <div key={course.id || idx} className="card p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="font-semibold text-secondary-900">{course.nombre}</div>
+                <div className="text-sm text-secondary-600 flex items-center mt-1">
+                  <BookOpen className="w-4 h-4 mr-1" />
+                  {course.codigo}
+                </div>
+              </div>
+              <div className="text-sm text-secondary-600 flex items-center">
+                <User className="w-4 h-4 mr-1" />
+                {course.docente_nombre}
+              </div>
+            </div>
+            <div className="mt-3 grid sm:grid-cols-3 gap-3 text-sm text-secondary-700">
+              <div className="flex items-center">
+                <MapPin className="w-4 h-4 mr-1" />
+                {course.aula}
+              </div>
+              <div className="flex items-center">
+                <Clock className="w-4 h-4 mr-1" />
+                {course.horario}
+              </div>
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-1" />
+                Ciclo {course.ciclo_nombre}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const WeekView = () => {
     const weekDates = getWeekDates(currentWeek);
     const timeSlots = generateTimeSlots();

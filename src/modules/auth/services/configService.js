@@ -7,10 +7,8 @@ export const configService = {
     getLoginLogo: async () => {
         try {
             const response = await api.get('/admin/config/public/logo');
-            console.log('Respuesta del servidor (logo):', response.data);
             
             if (!response.data || !response.data.value) {
-                console.warn('El servidor no devolvió una URL de logo válida');
                 return { value: upnoteLogo };
             }
 
@@ -27,17 +25,14 @@ export const configService = {
             try {
                 const imgResponse = await fetch(logoUrl, { method: 'HEAD' });
                 if (!imgResponse.ok) {
-                    console.warn('La URL del logo no es accesible:', logoUrl);
                     return { value: upnoteLogo };
                 }
             } catch (imgError) {
-                console.warn('Error al verificar la URL del logo:', imgError);
                 return { value: upnoteLogo };
             }
 
             return { ...response.data, value: logoUrl };
         } catch (error) {
-            console.error("Error al obtener el logo:", error);
             return { value: upnoteLogo };
         }
     },
@@ -51,7 +46,6 @@ export const configService = {
             }
             return response.data;
         } catch (error) {
-            console.error("Error al obtener la configuración del logo:", error);
             throw error;
         }
     },
@@ -62,7 +56,6 @@ export const configService = {
             const response = await api.put('/admin/config/logo', logoData);
             return response.data;
         } catch (error) {
-            console.error("Error al actualizar el logo:", error);
             throw error;
         }
     }
