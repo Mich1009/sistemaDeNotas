@@ -1,12 +1,20 @@
-import { useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LogOut, SidebarClose, Menu } from 'lucide-react';
 import useAuthStore from '../../modules/auth/store/authStore';
+import useNavigationStore from '../store/navigationStore';
+import { useLogoContext } from '../contexts/LogoContext';
 import { clsx } from 'clsx';
 import { getMenuItemsByRole, getRoleConfig } from '../config/menuConfig';
 
 const DashboardPage = () => {
-    const [activeSection, setActiveSection] = useState('dashboard');
     const { user, logout } = useAuthStore();
+    const {
+        activeSection,
+        sidebarCollapsed,
+        setActiveSection,
+        toggleSidebar
+    } = useNavigationStore();
+    const { logoUrl, loading: logoLoading } = useLogoContext();
 
     const handleLogout = () => {
         logout();
@@ -15,53 +23,85 @@ const DashboardPage = () => {
     // Obtener configuración basada en el rol del usuario
     const menuItems = getMenuItemsByRole(user?.role);
     const roleConfig = getRoleConfig(user?.role);
-    
+
     // Encontrar el componente activo
     const ActiveComponent = menuItems.find(item => item.id === activeSection)?.component;
 
     // Si no hay componente activo, mostrar el dashboard por defecto
-    if (!ActiveComponent) {
-        const defaultDashboard = menuItems.find(item => item.id === 'dashboard')?.component;
-        if (defaultDashboard) {
-            setActiveSection('dashboard');
+    useEffect(() => {
+        if (!ActiveComponent) {
+            const defaultDashboard = menuItems.find(item => item.id === 'dashboard');
+            if (defaultDashboard) {
+                setActiveSection('dashboard');
+            }
         }
-    }
+    }, [ActiveComponent, menuItems, setActiveSection]);
 
     return (
         <div className="flex h-screen bg-gray-100">
             {/* Sidebar */}
-            <div className="bg-white h-screen w-64 shadow-lg flex flex-col">
+            <section className={clsx("bg-white h-screen shadow-lg flex flex-col transition-all duration-300 ease-in-out", sidebarCollapsed ? "w-17" : "w-64" )}>
                 {/* Header del sidebar */}
-                <div className="p-6 border-b border-secondary-200">
-                    <h1 className="text-xl font-bold text-secondary-800">
-                        Sistema de Notas
-                    </h1>
-                    <p className="text-sm text-secondary-600 mt-1">
-                        {user?.first_name} {user?.last_name}
-                    </p>
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-2 ${roleConfig.badgeColor}`}>
-                        {roleConfig.label}
-                    </span>
-                </div>
+                <header className="p-4 border-b border-secondary-200 text-center relative">
+                    <button
+                        onClick={toggleSidebar}
+                        className="absolute top-4 right-4 p-1 hover:bg-secondary-200 rounded-md transition-colors duration-300"
+                    >
+                        {sidebarCollapsed ? (
+                            <Menu className="w-5 h-5 text-secondary-600" />
+                        ) : (
+                            <SidebarClose className="w-5 h-5 text-secondary-600" />
+                        )}
+                    </button>
+
+                    {/* Logo */}
+                    <div className='flex items-center justify-center'>
+                        {logoLoading ? (
+                            <div className="w-12 h-12 bg-gray-200 rounded animate-pulse"></div>
+                        ) : (
+                            <img
+                                src={logoUrl || '/src/assets/upnote.png'}
+                                alt="Logo"
+                                className="w-12 h-12 object-contain"
+                            />
+                        )}
+                    </div>
+
+                    {/* Título y información del usuario - solo visible cuando no está colapsado */}
+                    <div className={clsx(
+                        "transition-all duration-300 ease-in-out overflow-hidden",
+                        sidebarCollapsed ? "opacity-0 max-h-0" : "opacity-100 max-h-20"
+                    )}>
+                        <h1 className="text-xl font-bold text-secondary-800 mt-2">Sistema de Notas</h1>
+                        <p className="text-sm text-secondary-600">{user?.first_name} {user?.last_name}</p>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${roleConfig.badgeColor}`}>
+                            {roleConfig.label}
+                        </span>
+                    </div>
+                </header>
 
                 {/* Navegación */}
                 <nav className="flex-1 p-4">
-                    <ul className="space-y-2">
+                    <ul className="space-y-1">
                         {menuItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = activeSection === item.id;
-                            
+
                             return (
                                 <li key={item.id}>
                                     <button
                                         onClick={() => setActiveSection(item.id)}
-                                        className={clsx(
-                                            'sidebar-item w-full text-left',
-                                            { 'active': isActive }
-                                        )}
+                                        className={`flex items-center gap-2 w-full px-2 py-2 rounded-md hover:bg-primary-50 hover:text-primary-700 
+                                                    ${isActive ? 'bg-primary-100 text-primary-600 font-semibold' : ''}
+                                                `}
+                                        title={sidebarCollapsed ? item.label : ''}
                                     >
-                                        <Icon className="w-5 h-5 mr-3" />
-                                        {item.label}
+                                        <Icon className={`w-5 h-5 ${sidebarCollapsed ? 'min-w-5 min-h-5' : ''}`} />
+                                        {!sidebarCollapsed && (
+                                            <span className='whitespace-nowrap'>
+                                                {item.label}
+                                            </span>
+                                        )}
                                     </button>
                                 </li>
                             );
@@ -70,23 +110,33 @@ const DashboardPage = () => {
                 </nav>
 
                 {/* Footer del sidebar */}
-                <div className="p-4 border-t border-secondary-200">
+                <footer className="p-4 border-t border-secondary-200">
                     <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        className={clsx(
+                            "flex items-center w-full text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200",
+                            sidebarCollapsed ? "justify-center px-2 py-3" : "px-4 py-2"
+                        )}
+                        title={sidebarCollapsed ? "Cerrar Sesión" : ""}
                     >
-                        <LogOut className="w-5 h-5 mr-3" />
-                        Cerrar Sesión
+                        <LogOut className={clsx(
+                            "w-5 h-5",
+                            sidebarCollapsed ? "" : "mr-3"
+                        )} />
+                        <span className={clsx(
+                            "transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap",
+                            sidebarCollapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
+                        )}>
+                            Cerrar Sesión
+                        </span>
                     </button>
-                </div>
-            </div>
+                </footer>
+            </section>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-hidden">
-                <div className="h-full overflow-y-auto">
-                    {ActiveComponent && <ActiveComponent />}
-                </div>
-            </div>
+            <main className=" flex-1 h-full overflow-y-auto">
+                {ActiveComponent && <ActiveComponent />}
+            </main>
         </div>
     );
 };

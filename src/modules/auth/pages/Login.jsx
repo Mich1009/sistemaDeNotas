@@ -14,6 +14,7 @@ const Login = () => {
   const { login, isAuthenticated, setLoading, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(upnoteLogo); // Estado para el logo
 
   const {
     register,
@@ -22,6 +23,24 @@ const Login = () => {
   } = useForm();
 
   const recoveryForm = useForm();
+
+  // Cargar configuración del logo
+  useEffect(() => {
+    const loadLogoConfig = async () => {
+      try {
+        const logoConfig = await configService.getLoginLogo();
+        if (logoConfig && logoConfig.value) {
+          setLogoUrl(logoConfig.value);
+        }
+      } catch (error) {
+        console.error('Error al cargar la configuración del logo:', error);
+        // Mantener el logo por defecto en caso de error
+        setLogoUrl(upnoteLogo);
+      }
+    };
+
+    loadLogoConfig();
+  }, []);
 
   // Redirigir si ya está autenticado
   if (isAuthenticated) {
