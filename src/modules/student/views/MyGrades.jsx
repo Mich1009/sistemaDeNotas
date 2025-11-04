@@ -39,11 +39,25 @@ const MyGrades = () => {
     };
 
     useEffect(() => {
-        loadGradesData(activeFilters);
-    }, []);
+        // Solo cargar datos cuando cambian los filtros de ciclo o docente
+        // La búsqueda por texto se hará localmente
+        const { search, ...serverFilters } = activeFilters;
+        loadGradesData(serverFilters);
+    }, [activeFilters.ciclo_id, activeFilters.docente_id]);
 
-    // Los datos ya vienen filtrados del backend, no necesitamos filtrado adicional del cliente
-    const filteredGrades = gradesData.grades;
+    // Filtrado local para búsqueda por texto
+    const filteredGrades = React.useMemo(() => {
+        if (!activeFilters.search) {
+            return gradesData.grades;
+        }
+        
+        const searchTerm = activeFilters.search.toLowerCase();
+        return gradesData.grades.filter(grade => 
+            grade.curso_nombre?.toLowerCase().includes(searchTerm) ||
+            grade.docente_nombre?.toLowerCase().includes(searchTerm) ||
+            grade.ciclo_nombre?.toLowerCase().includes(searchTerm)
+        );
+    }, [gradesData.grades, activeFilters.search]);
 
     // Agrupar notas por curso para mejor visualización
     const groupedGrades = gradeUtils.groupGradesByCourse(filteredGrades);
@@ -54,8 +68,13 @@ const MyGrades = () => {
             [filterType]: value
         };
         setActiveFilters(newFilters);
-        // Recargar datos con los nuevos filtros
-        loadGradesData(newFilters);
+        
+        // Solo recargar datos del servidor si cambian ciclo o docente
+        // La búsqueda por texto se maneja localmente
+        if (filterType !== 'search') {
+            const { search, ...serverFilters } = newFilters;
+            loadGradesData(serverFilters);
+        }
     };
 
     const clearFilters = () => {
