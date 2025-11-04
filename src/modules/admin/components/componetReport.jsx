@@ -31,6 +31,7 @@ export const CarreraNodo = ({ data }) => {
 };
 
 export const CicloNodo = ({ data, onVerEstudiantes }) => {
+    
     const getColorByPromedio = (promedio) => {
         if (promedio >= 16) return 'from-green-500 to-green-600 border-green-300';
         if (promedio >= 13) return 'from-green-500 to-green-600 border-green-300';

@@ -161,8 +161,11 @@ export const matriculasService = {
 // Servicios de Reportes
 export const reportesService = {
     getEstructuraJerarquica: async (año = null) => {
-        const params = año ? `?año=${año}` : '';
-        const response = await api.get(`/admin/reportes/jerarquicos/carreras-ciclos${params}`);
+        const params = new URLSearchParams();
+        if (año) params.append('año', año);
+        // Agregar timestamp para evitar caché
+        params.append('_t', Date.now().toString());
+        const response = await api.get(`/admin/reportes/jerarquicos/carreras-ciclos?${params}`);
         return response.data;
     },
 

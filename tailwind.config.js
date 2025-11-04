@@ -35,6 +35,18 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      spacing: {
+        '17': '4.25rem', // 68px
+        '18': '4.5rem',  // 72px
+        '19': '4.75rem', // 76px
+        '22': '5.5rem',  // 88px
+      },
+      minWidth: theme => ({
+        ...theme('spacing'),
+      }),
+      maxWidth: theme => ({
+        ...theme('spacing'),
+      }),
     },
   },
   plugins: [],

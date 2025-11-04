@@ -1,18 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, LogIn, GraduationCap, Mail, X } from 'lucide-react'
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { authService } from '../services/apiAuth';
+import { configService } from '../services/configService';
 import Footer from '../../../shared/components/Footer.jsx';
-import upnoteLogo from '../../../assets/upnote.png';
+import upnoteLogo from '../../../assets/upnote.png'; // Logo por defecto
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, setLoading, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(upnoteLogo); // Estado para el logo
 
   const {
     register,
@@ -21,6 +23,24 @@ const Login = () => {
   } = useForm();
 
   const recoveryForm = useForm();
+
+  // Cargar configuración del logo
+  useEffect(() => {
+    const loadLogoConfig = async () => {
+      try {
+        const logoConfig = await configService.getLoginLogo();
+        if (logoConfig && logoConfig.value) {
+          setLogoUrl(logoConfig.value);
+        }
+      } catch (error) {
+        console.error('Error al cargar la configuración del logo:', error);
+        // Mantener el logo por defecto en caso de error
+        setLogoUrl(upnoteLogo);
+      }
+    };
+
+    loadLogoConfig();
+  }, []);
 
   // Redirigir si ya está autenticado
   if (isAuthenticated) {
@@ -82,9 +102,14 @@ const Login = () => {
         {/* Logo y t�tulo */}
         <div className="text-center mb-8">
           <img
-            src={upnoteLogo}
+            id="login-logo"
+            src={logoUrl}
             alt="UPNote"
             className="mx-auto w-16 h-16 rounded-full mb-4 ring-2 ring-primary-600 object-cover"
+            onError={() => {
+              console.log('Error al cargar la imagen, usando logo por defecto');
+              setLogoUrl(upnoteLogo);
+            }}
           />
           <h1 className="text-3xl font-bold text-secondary-800 mb-2">
             Sistema de Notas

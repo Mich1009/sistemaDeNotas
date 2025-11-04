@@ -29,96 +29,445 @@ const Schedule = () => {
       setLoading(true);
       const response = await scheduleService.getSchedule();
       console.log('Courses response:', response); // Debug log
+      
+      // Asegurarse de que la respuesta sea un array
       const data = Array.isArray(response) ? response : [];
-      const filtered = data.filter((course) => {
-        const cicloNombre = (course?.ciclo_nombre || course?.ciclo || '').toString().toLowerCase();
-        const cicloNumero = course?.ciclo_numero ?? course?.cicloNumero ?? course?.cicloId;
-        return (
-          cicloNumero === 6 ||
-          cicloNombre.includes('vi') ||
-          cicloNombre.includes('6')
-        );
-      });
-
-      // Fallback: horario fijo del VI ciclo (Lun–Vie)
-      const fallbackSixthCycle = [
-        {
-          id: 1,
-          nombre: 'Taller de Aplicaciones Móviles',
-          codigo: 'TAM601',
-          docente_nombre: 'Ing. Christian Duilin Puyo',
-          aula: 'Lab. Cómputo 01',
-          horas_semanales: 6,
-          ciclo_nombre: 'VI',
-          // Alineado a periodos de 45 min y recreo 18:00–18:20
-          horario: 'Lunes 14:15-15:45, Miércoles 18:20-19:50, Viernes 14:15-16:30'
-        },
-        {
-          id: 2,
-          nombre: 'Inteligencia de Negocios',
-          codigo: 'IN602',
-          docente_nombre: 'Prof. Jhon Saboya Fulca',
-          aula: 'Lab. Cómputo 04',
-          horas_semanales: 6,
-          ciclo_nombre: 'VI',
-          horario: 'Lunes 15:45-17:15, Jueves 15:45-17:45'
-        },
-        {
-          id: 3,
-          nombre: 'Oportunidades de Negocios',
-          codigo: 'OE603',
-          docente_nombre: 'Ing. Freddy Flores',
-          aula: 'Lab. Cómputo 02',
-          horas_semanales: 4,
-          ciclo_nombre: 'VI',
-          horario: 'Lunes 17:15-18:00, Lunes 18:20-19:05'
-        },
-        {
-          id: 4,
-          nombre: 'Experiencias Formativas',
-          codigo: 'EF604',
-          docente_nombre: 'Team Haro / Innovación',
-          aula: 'Lab. de Fabricación Digital',
-          horas_semanales: 4,
-          ciclo_nombre: 'VI',
-          horario: 'Martes 15:00-16:30'
-        },
-        {
-          id: 5,
-          nombre: 'Taller de Programación Web',
-          codigo: 'TPW605',
-          docente_nombre: 'Prof. Jhon Saboya Fulca',
-          aula: 'Lab. Cómputo 01',
-          horas_semanales: 6,
-          ciclo_nombre: 'VI',
-          horario: 'Martes 16:30-18:00, Martes 18:20-19:50, Miércoles 14:15-15:45, Viernes 16:30-18:00, Viernes 18:20-19:05'
-        },
-        {
-          id: 6,
-          nombre: 'Herramientas Multimedia',
-          codigo: 'HM606',
-          docente_nombre: 'Ing. Torres Arevalo',
-          aula: 'Lab. Cómputo 01',
-          horas_semanales: 6,
-          ciclo_nombre: 'VI',
-          horario: 'Miércoles 15:45-18:00, Jueves 14:15-15:45'
-        },
-        {
-          id: 7,
-          nombre: 'Solución de Problemas',
-          codigo: 'SP607',
-          docente_nombre: 'Ing. Freddy Flores',
-          aula: 'Lab. Cómputo 06',
-          horas_semanales: 4,
-          ciclo_nombre: 'VI',
-          horario: 'Jueves 17:15-18:00, Jueves 18:20-19:50'
+      
+      // Determinar el ciclo más alto del estudiante
+      let cicloEstudiante = 1; // Valor por defecto
+      
+      data.forEach(curso => {
+        let cicloCurso;
+        
+        // Intentar obtener el ciclo del curso de diferentes propiedades
+        if (curso.ciclo_id) {
+          cicloCurso = parseInt(curso.ciclo_id);
+        } else if (curso.ciclo_numero) {
+          cicloCurso = parseInt(curso.ciclo_numero);
+        } else if (curso.ciclo_nombre) {
+          const cicloNombre = curso.ciclo_nombre.toString().toUpperCase();
+          // Ordenar las comparaciones de mayor a menor para evitar coincidencias parciales
+          if (cicloNombre.includes('VI')) {
+            cicloCurso = 6;
+          } else if (cicloNombre.includes('IV')) {
+            cicloCurso = 4;
+          } else if (cicloNombre.includes('V')) {
+            cicloCurso = 5;
+          } else if (cicloNombre.includes('III')) {
+            cicloCurso = 3;
+          } else if (cicloNombre.includes('II')) {
+            cicloCurso = 2;
+          } else if (cicloNombre.includes('I')) {
+            cicloCurso = 1;
+          }
         }
-      ];
-
-      // Hardcode: forzar horario del VI ciclo para que se muestre ya
-      const finalCourses = fallbackSixthCycle;
-      console.log('[Horario] Cursos cargados (hardcoded VI ciclo, alineado 45m + recreo):', finalCourses);
-      setCourses(finalCourses);
+        
+        // Actualizar cicloEstudiante si encontramos un ciclo mayor
+        if (cicloCurso && cicloCurso > cicloEstudiante) {
+          cicloEstudiante = cicloCurso;
+        }
+      });
+      
+      console.log(`Ciclo más alto del estudiante detectado: ${cicloEstudiante}`);
+      
+      // Mapeo de horarios por ciclo basado en las imágenes
+      const horariosPorCiclo = {
+        // Ciclo I - Turno Mañana
+        1: [
+          {
+            id: 101,
+            nombre: 'ARQUITECTURA DE COMPUTADORA E INTEGRACIÓN DE TIC',
+            codigo: 'ACI101',
+            docente_nombre: 'Mtro. Ruber Torres Arevalo',
+            aula: 'H.T.0 - H.P.1 Taller de Ensamblaje y Reparación',
+            horas_semanales: 6,
+            ciclo_nombre: 'I',
+            horario: 'Lunes 07:30 - 09:45, Miércoles 07:30 - 09:45'
+          },
+          {
+            id: 102,
+            nombre: 'FUNDAMENTOS DE PROGRAMACIÓN',
+            codigo: 'FP102',
+            docente_nombre: 'Dr. Gil Torres Arevalo',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1A',
+            horas_semanales: 6,
+            ciclo_nombre: 'I',
+            horario: 'Lunes 09:45 - 10:30, Jueves 07:30 - 09:45, Viernes 09:45 - 10:30'
+          },
+          {
+            id: 103,
+            nombre: 'LENGUAJE DE PROGRAMACIÓN',
+            codigo: 'LP103',
+            docente_nombre: 'Ing. Christian Duilin Puyo Torres',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°01',
+            horas_semanales: 6,
+            ciclo_nombre: 'I',
+            horario: 'Martes 07:30 - 09:45, Miércoles 09:45 - 10:30'
+          },
+          {
+            id: 104,
+            nombre: 'REDES Y CONECTIVIDAD DE COMPUTADORAS',
+            codigo: 'RCC104',
+            docente_nombre: 'Mtro. Ruber Torres Arevalo',
+            aula: 'H.T.0 - H.P.1 Taller de Ensamblaje y Reparación',
+            horas_semanales: 6,
+            ciclo_nombre: 'I',
+            horario: 'Viernes 07:30 - 09:45'
+          },
+          {
+            id: 105,
+            nombre: 'COMUNICACIÓN ORAL',
+            codigo: 'CO105',
+            docente_nombre: 'Jhon Saboya Fulca',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1A',
+            horas_semanales: 4,
+            ciclo_nombre: 'I',
+            horario: 'Jueves 09:45 - 10:30'
+          },
+          {
+            id: 106,
+            nombre: 'OFIMÁTICA',
+            codigo: 'OF106',
+            docente_nombre: 'Ing. Renato Herger Tarazona Flores',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°1A',
+            horas_semanales: 4,
+            ciclo_nombre: 'I',
+            horario: 'Viernes 09:45 - 10:30'
+          },
+          {
+            id: 107,
+            nombre: 'APLICACIONES EMPRESARIALES',
+            codigo: 'AE107',
+            docente_nombre: 'Ing. Renato Herger Tarazona Flores',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1A',
+            horas_semanales: 6,
+            ciclo_nombre: 'I',
+            horario: 'Lunes 10:50 - 12:20, Miércoles 10:50 - 12:20'
+          },
+          {
+            id: 108,
+            nombre: 'EXPERIENCIAS FORMATIVAS',
+            codigo: 'EF108',
+            docente_nombre: 'INDUCCIÓN',
+            aula: 'H.T.0 - H.P.1',
+            horas_semanales: 4,
+            ciclo_nombre: 'I',
+            horario: 'Martes 10:50 - 12:20'
+          }
+        ],
+        
+        // Ciclo III - Turno Noche
+        3: [
+          {
+            id: 301,
+            nombre: 'INNOVACIÓN TECNOLÓGICA',
+            codigo: 'IT301',
+            docente_nombre: 'Ing. Renato Herger Tarazona Flores',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°02',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Lunes 14:15 - 16:30'
+          },
+          {
+            id: 302,
+            nombre: 'INGLÉS PARA LA COMUNICACIÓN',
+            codigo: 'IC302',
+            docente_nombre: 'P.T Diana Carolina Hidalgo Gonzales',
+            aula: 'H.T.0 - H.P.1 Taller de Ensamblaje y Reparación',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Martes 14:15 - 16:30'
+          },
+          {
+            id: 303,
+            nombre: 'EXPERIENCIAS FORMATIVAS',
+            codigo: 'EF303',
+            docente_nombre: 'INDUCCIÓN',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1A',
+            horas_semanales: 4,
+            ciclo_nombre: 'III',
+            horario: 'Miércoles 14:15 - 16:30'
+          },
+          {
+            id: 304,
+            nombre: 'PROGRAMACIÓN CONCURRENTE',
+            codigo: 'PC304',
+            docente_nombre: 'Mtro. Ruber Torres Arevalo',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°02',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Jueves 14:15 - 16:30, Lunes 18:20 - 19:50'
+          },
+          {
+            id: 305,
+            nombre: 'PROGRAMACIÓN ORIENTADA A OBJETOS',
+            codigo: 'POO305',
+            docente_nombre: 'P.T C.I Jhon Saboya Fulca',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°02',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Viernes 14:15 - 16:30, Miércoles 18:20 - 19:50'
+          },
+          {
+            id: 306,
+            nombre: 'PROGRAMACIÓN DISTRIBUIDA',
+            codigo: 'PD306',
+            docente_nombre: 'Ing. Christian Duilin Puyo Torres',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°1B',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Lunes 16:30 - 18:00, Martes 18:20 - 19:50'
+          },
+          {
+            id: 307,
+            nombre: 'ARQUITECTURA DE BASE DE DATOS',
+            codigo: 'ABD307',
+            docente_nombre: 'Ing. Christian Duilin Puyo Torres',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°1A',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Viernes 16:30 - 18:00, Jueves 18:20 - 19:50'
+          },
+          {
+            id: 308,
+            nombre: 'MODELAMIENTO DE SOFTWARE',
+            codigo: 'MS308',
+            docente_nombre: 'Ing. Renato Herger Tarazona Flores',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°02',
+            horas_semanales: 6,
+            ciclo_nombre: 'III',
+            horario: 'Jueves 16:30 - 18:00, Viernes 18:20 - 19:50'
+          }
+        ],
+        
+        // Ciclo IV - Turno Noche
+        4: [
+          {
+            id: 401,
+            nombre: 'EXPERIENCIAS FORMATIVAS',
+            codigo: 'EF401',
+            docente_nombre: 'INDUCCIÓN',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Fabricación Digital',
+            horas_semanales: 4,
+            ciclo_nombre: 'IV',
+            horario: 'Lunes 14:15 - 15:00'
+          },
+          {
+            id: 402,
+            nombre: 'COMPRENSIÓN Y REDACCIÓN EN INGLÉS',
+            codigo: 'CRI402',
+            docente_nombre: 'P.T Diana Carolina Hidalgo Gonzales',
+            aula: 'H.T.0 - H.P.1 Aula N°12',
+            horas_semanales: 6,
+            ciclo_nombre: 'IV',
+            horario: 'Martes 14:15 - 16:30'
+          },
+          {
+            id: 403,
+            nombre: 'DISEÑO GRÁFICO',
+            codigo: 'DG403',
+            docente_nombre: 'Mtro. Ruber Torres Arevalo',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Fabricación Digital',
+            horas_semanales: 6,
+            ciclo_nombre: 'IV',
+            horario: 'Miércoles 14:15 - 16:30, Lunes 15:00 - 17:15'
+          },
+          {
+            id: 404,
+            nombre: 'TALLER DE SOFTWARE',
+            codigo: 'TS404',
+            docente_nombre: 'Ing. Renato Herger Flores Tarazona',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°01',
+            horas_semanales: 6,
+            ciclo_nombre: 'IV',
+            horario: 'Jueves 14:15 - 16:30, Martes 16:30 - 18:00, Martes 18:20 - 19:05'
+          },
+          {
+            id: 405,
+            nombre: 'TALLER DE BASE DE DATOS',
+            codigo: 'TBD405',
+            docente_nombre: 'Ing. Renato Herger Flores Tarazona',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°01',
+            horas_semanales: 6,
+            ciclo_nombre: 'IV',
+            horario: 'Viernes 14:15 - 16:30, Miércoles 16:30 - 18:00, Miércoles 18:20 - 19:05'
+          },
+          {
+            id: 406,
+            nombre: 'CULTURA AMBIENTAL',
+            codigo: 'CA406',
+            docente_nombre: 'Ing. Jhon saboya fulca',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°01',
+            horas_semanales: 4,
+            ciclo_nombre: 'IV',
+            horario: 'Lunes 17:15 - 18:00, Lunes 18:20 - 19:50'
+          },
+          {
+            id: 407,
+            nombre: 'SEGURIDAD INFORMÁTICA',
+            codigo: 'SI407',
+            docente_nombre: 'Ing. Christian Duilin Puyo Torres',
+            aula: 'H.T.0 - H.P.0 Laboratorio de Cómputo N°02',
+            horas_semanales: 6,
+            ciclo_nombre: 'IV',
+            horario: 'Jueves 16:30 - 18:00, Jueves 18:20 - 19:05, Viernes 16:30 - 18:00, Viernes 18:20 - 19:05'
+          }
+        ],
+        
+        // Ciclo V - Turno Noche
+        5: [
+          {
+            id: 501,
+            nombre: 'DESARROLLO DE APLICACIONES MÓVILES',
+            codigo: 'DAM501',
+            docente_nombre: 'Ing. Christian Duilin Puyo Torres',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°1B',
+            horas_semanales: 6,
+            ciclo_nombre: 'V',
+            horario: 'Lunes 14:15 - 16:30'
+          },
+          {
+            id: 502,
+            nombre: 'COMPORTAMIENTO ÉTICO',
+            codigo: 'CE502',
+            docente_nombre: 'P.T C.I Jhon Saboya Fulca',
+            aula: 'H.T.0 - H.P.0 Taller de Ensamblaje y Reparación',
+            horas_semanales: 6,
+            ciclo_nombre: 'V',
+            horario: 'Martes 14:15 - 16:30'
+          },
+          {
+            id: 503,
+            nombre: 'DISEÑO WEB',
+            codigo: 'DW503',
+            docente_nombre: 'P.T C.I Jhon Saboya Fulca',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1B',
+            horas_semanales: 6,
+            ciclo_nombre: 'V',
+            horario: 'Miércoles 14:15 - 16:30, Lunes 18:20 - 19:50, Viernes 18:20 - 19:50'
+          },
+          {
+            id: 504,
+            nombre: 'ANIMACIÓN GRÁFICA',
+            codigo: 'AG504',
+            docente_nombre: 'Ing. Renato Herger Tarazona Flores',
+            aula: 'H.T.1 - H.P.0 Laboratorio de Cómputo N°1B',
+            horas_semanales: 6,
+            ciclo_nombre: 'V',
+            horario: 'Jueves 14:15 - 16:30, Martes 18:20 - 19:05, Viernes 18:20 - 19:50'
+          },
+          {
+            id: 505,
+            nombre: 'DISEÑO DE APLICACIONES',
+            codigo: 'DA505',
+            docente_nombre: 'Ing. Christian Duilin Puyo Torres',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1B',
+            horas_semanales: 6,
+            ciclo_nombre: 'V',
+            horario: 'Viernes 14:15 - 16:30'
+          },
+          {
+            id: 506,
+            nombre: 'EXPERIENCIAS FORMATIVAS',
+            codigo: 'EF506',
+            docente_nombre: 'INDUCCIÓN',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1B',
+            horas_semanales: 4,
+            ciclo_nombre: 'V',
+            horario: 'Martes 16:30 - 18:00'
+          },
+          {
+            id: 507,
+            nombre: 'GESTIÓN Y ADMINISTRACIÓN WEB',
+            codigo: 'GAW507',
+            docente_nombre: 'Mtro. Ruber Torres Arevalo',
+            aula: 'H.T.0 - H.P.1 Laboratorio de Cómputo N°1B',
+            horas_semanales: 6,
+            ciclo_nombre: 'V',
+            horario: 'Miércoles 16:30 - 19:50, Jueves 16:30 - 19:05'
+          }
+        ],
+        
+        // Ciclo VI (ya existente, lo mantenemos)
+        6: [
+          {
+            id: 1,
+            nombre: 'Taller de Aplicaciones Móviles',
+            codigo: 'TAM601',
+            docente_nombre: 'Ing. Christian Duilin Puyo',
+            aula: 'Lab. Cómputo 01',
+            horas_semanales: 6,
+            ciclo_nombre: 'VI',
+            horario: 'Lunes 14:15 - 15:45, Miércoles 18:20 - 19:50, Viernes 14:15 - 16:30'
+          },
+          {
+            id: 2,
+            nombre: 'Inteligencia de Negocios',
+            codigo: 'IN602',
+            docente_nombre: 'Prof. Jhon Saboya Fulca',
+            aula: 'Lab. Cómputo 04',
+            horas_semanales: 6,
+            ciclo_nombre: 'VI',
+            horario: 'Lunes 15:45 - 17:15, Jueves 15:45 - 17:45'
+          },
+          {
+            id: 3,
+            nombre: 'Oportunidades de Negocios',
+            codigo: 'OE603',
+            docente_nombre: 'Ing. Freddy Flores',
+            aula: 'Lab. Cómputo 02',
+            horas_semanales: 4,
+            ciclo_nombre: 'VI',
+            horario: 'Lunes 17:15 - 18:00, Lunes 18:20 - 19:05'
+          },
+          {
+            id: 4,
+            nombre: 'Experiencias Formativas',
+            codigo: 'EF604',
+            docente_nombre: 'Team Haro / Innovación',
+            aula: 'Lab. de Fabricación Digital',
+            horas_semanales: 4,
+            ciclo_nombre: 'VI',
+            horario: 'Martes 15:00 - 16:30'
+          },
+          {
+            id: 5,
+            nombre: 'Taller de Programación Web',
+            codigo: 'TPW605',
+            docente_nombre: 'Prof. Jhon Saboya Fulca',
+            aula: 'Lab. Cómputo 01',
+            horas_semanales: 6,
+            ciclo_nombre: 'VI',
+            horario: 'Martes 16:30 - 18:00, Martes 18:20 - 19:50, Miércoles 14:15 - 15:45, Viernes 16:30 - 18:00, Viernes 18:20 - 19:05'
+          },
+          {
+            id: 6,
+            nombre: 'Herramientas Multimedia',
+            codigo: 'HM606',
+            docente_nombre: 'Ing. Torres Arevalo',
+            aula: 'Lab. Cómputo 01',
+            horas_semanales: 6,
+            ciclo_nombre: 'VI',
+            horario: 'Miércoles 15:45 - 18:00, Jueves 14:15 - 15:45'
+          },
+          {
+            id: 7,
+            nombre: 'Solución de Problemas',
+            codigo: 'SP607',
+            docente_nombre: 'Ing. Freddy Flores',
+            aula: 'Lab. Cómputo 06',
+            horas_semanales: 4,
+            ciclo_nombre: 'VI',
+            horario: 'Jueves 17:15 - 18:00, Jueves 18:20 - 19:50'
+          }
+        ]
+      };
+      
+      // Seleccionar el horario correspondiente al ciclo del estudiante
+      const horarioCiclo = horariosPorCiclo[cicloEstudiante] || horariosPorCiclo[1]; // Si no hay coincidencia, usar ciclo I
+      
+      console.log(`[Horario] Cursos cargados para ciclo ${cicloEstudiante}:`, horarioCiclo);
+      setCourses(horarioCiclo);
     } catch (error) {
       console.error('Error loading courses:', error);
       toast.error('Error al cargar el horario');
@@ -157,7 +506,7 @@ const Schedule = () => {
   const parseSchedule = (scheduleString) => {
     if (!scheduleString || typeof scheduleString !== 'string') return [];
     const items = scheduleString.split(',').map(s => s.trim()).filter(Boolean);
-    const regex = /^([A-Za-zÁÉÍÓÚáéíóúÑñ]+)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/;
+    const regex = /^([A-Za-zÁÉÍÓÚáéíóúÑñ]+)\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/;
     const parsed = [];
     for (const item of items) {
       const match = item.match(regex);
@@ -234,34 +583,36 @@ const Schedule = () => {
 
   const CourseCard = ({ course, dayName, startTime }) => {
     const schedules = parseSchedule(course.horario);
-    const currentSchedule = schedules.find(s => s.day === dayName && s.startTime === startTime);
-    const color = getCourseColor(course);
+    const daySchedule = schedules.find(s => s.day === dayName);
     
+    // Generar un color basado en el código del curso
+    const generateCourseColor = (courseCode) => {
+      const colors = [
+        'bg-blue-100 border-blue-200 text-blue-800',
+        'bg-green-100 border-green-200 text-green-800',
+        'bg-purple-100 border-purple-200 text-purple-800',
+        'bg-yellow-100 border-yellow-200 text-yellow-800',
+        'bg-pink-100 border-pink-200 text-pink-800',
+        'bg-indigo-100 border-indigo-200 text-indigo-800',
+      ];
+      const index = course.codigo.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+      return colors[index];
+    };
+  
+    const colorClass = generateCourseColor(course.codigo);
+  
     return (
-      <div
-        className="h-full rounded-lg p-3 shadow-sm"
-        style={{ backgroundColor: color.bg, borderLeft: `4px solid ${color.border}` }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h4 className="font-semibold text-sm" style={{ color: color.text }}>
-              {course.nombre}
-            </h4>
-            <p className="text-xs" style={{ color: color.text }}>
-              {course.codigo}
-            </p>
-            {course.aula && (
-              <p className="text-xs mt-1" style={{ color: '#616161' }}>
-                <MapPin className="w-3 h-3 inline mr-1" />
-                {course.aula}
-              </p>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="text-sm font-bold" style={{ color: color.text }}>
-              {currentSchedule?.startTime} - {currentSchedule?.endTime}
-            </div>
-          </div>
+      <div className={`h-full p-2 rounded-lg border ${colorClass}`}>
+        <div className="font-medium text-sm truncate">
+          {course.nombre}
+        </div>
+        <div className="text-xs opacity-90 flex items-center mt-1">
+          <Clock className="w-3 h-3 mr-1" />
+          {daySchedule?.startTime} - {daySchedule?.endTime}
+        </div>
+        <div className="text-xs opacity-90 flex items-center mt-1">
+          <MapPin className="w-3 h-3 mr-1" />
+          {course.aula}
         </div>
       </div>
     );
@@ -270,12 +621,12 @@ const Schedule = () => {
   const WeekView = () => {
     const weekDates = getWeekDates(currentWeek);
     const timeSlots = generateTimeSlots();
-
+  
     const timeToMin = (t) => {
       const [h, m] = t.split(':').map(Number);
       return h * 60 + m;
     };
-
+  
     // Índice precalculado: clave "Día|HH:MM" -> cursos que inician ahí
     const scheduleIndex = React.useMemo(() => {
       const idx = {};
@@ -284,12 +635,12 @@ const Schedule = () => {
         items.forEach((it) => {
           const key = `${it.day}|${it.startTime}`;
           if (!idx[key]) idx[key] = [];
-          idx[key].push(course);
+          idx[key].push({ ...course, endTime: it.endTime });
         });
       });
       return idx;
     }, [courses]);
-
+  
     // Set de celdas cubiertas por un bloque que comenzó en filas anteriores
     const coveredCells = React.useMemo(() => {
       const covered = new Set();
@@ -298,7 +649,7 @@ const Schedule = () => {
         items.forEach((it) => {
           const startMin = timeToMin(it.startTime);
           const endMin = timeToMin(it.endTime);
-          timeSlots.forEach((slot, idx) => {
+          timeSlots.forEach((slot) => {
             const slotMin = timeToMin(slot);
             if (slotMin > startMin && slotMin < endMin) {
               covered.add(`${it.day}|${slot}`);
@@ -308,11 +659,11 @@ const Schedule = () => {
       });
       return covered;
     }, [courses, timeSlots]);
-
+  
     return (
       <div className="space-y-4">
         {/* Navegación de semana */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigateWeek(-1)}
@@ -328,7 +679,7 @@ const Schedule = () => {
             </button>
             <button
               onClick={goToToday}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
             >
               Hoy
             </button>
@@ -337,22 +688,25 @@ const Schedule = () => {
             {weekDates[0].toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
           </div>
         </div>
-
+  
         {/* Tabla de horario */}
-        <div className="card overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-secondary-50">
+            <table className="w-full border-collapse">
+              <thead className="bg-secondary-50 border-b border-secondary-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-secondary-600 w-20">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-secondary-600 w-24 border-r border-secondary-200">
                     Hora
                   </th>
                   {weekDates.map((date, index) => (
-                    <th key={index} className={`px-4 py-3 text-center text-sm font-medium w-32 ${
+                    <th key={index} className={`px-4 py-4 text-center text-sm font-semibold w-40 border-r border-secondary-200 ${
                       isToday(date) ? 'bg-primary-50 text-primary-700' : 'text-secondary-600'
                     }`}>
                       <div>
-                        <div className="font-semibold">{getDayShortName(date)}</div>
+                        <div className="text-base">{getDayShortName(date)}</div>
+                        <div className="text-xs mt-1 font-normal">
+                          {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                        </div>
                       </div>
                     </th>
                   ))}
@@ -360,36 +714,41 @@ const Schedule = () => {
               </thead>
               <tbody>
                 {timeSlots.map((time, timeIndex) => (
-                  <tr key={timeIndex} className="border-t border-secondary-200">
-                    <td className={`px-4 py-2 text-sm font-medium ${time === '18:00' ? 'text-yellow-700' : 'text-secondary-600'}`}>
-                      {time === '18:00' ? '18:00 • Recreo' : time}
+                  <tr key={timeIndex} className={time === '18:00' ? 'bg-yellow-50' : ''}>
+                    <td className={`px-6 py-3 text-sm font-medium border-r border-secondary-200 ${
+                      time === '18:00' ? 'text-yellow-700' : 'text-secondary-600'
+                    }`}>
+                      {time === '18:00' ? (
+                        <div className="flex items-center">
+                          <Bell className="w-4 h-4 mr-2" />
+                          <span>Recreo</span>
+                        </div>
+                      ) : time}
                     </td>
                     {weekDates.map((date, dayIndex) => {
                       const dayName = getDayName(date);
                       const key = `${dayName}|${time}`;
-
+  
                       // Fila de recreo: pintar celda vacía con fondo y sin cursos
                       if (time === '18:00') {
                         return (
-                          <td key={dayIndex} className="px-2 py-2 bg-secondary-100" />
+                          <td key={dayIndex} className="px-2 py-2 bg-yellow-50 border-r border-secondary-200" />
                         );
                       }
-
+  
                       // Si esta celda está cubierta por un bloque previo, no renderizar TD
                       if (coveredCells.has(key)) {
                         return null;
                       }
-
+  
                       const coursesStartingNow = scheduleIndex[key] || [];
-
+  
                       // Calcular rowSpan según los periodos de 45 min hasta el endTime
                       let rowSpan = 1;
                       if (coursesStartingNow.length > 0) {
                         const spans = coursesStartingNow.map((course) => {
-                          const it = parseSchedule(course.horario).find((s) => s.day === dayName && s.startTime === time);
-                          if (!it) return 1;
-                          const startMin = timeToMin(it.startTime);
-                          const endMin = timeToMin(it.endTime);
+                          const startMin = timeToMin(time);
+                          const endMin = timeToMin(course.endTime);
                           const count = timeSlots.filter((t) => {
                             const mins = timeToMin(t);
                             return mins >= startMin && mins < endMin;
@@ -398,15 +757,22 @@ const Schedule = () => {
                         });
                         rowSpan = Math.max(...spans);
                       }
-
+  
                       return (
                         <td
                           key={dayIndex}
                           rowSpan={rowSpan}
-                          className={`px-2 py-1 align-top ${isToday(date) ? 'bg-primary-25' : ''}`}
+                          className={`px-2 py-2 align-top border-r border-secondary-200 ${
+                            isToday(date) ? 'bg-primary-25' : ''
+                          }`}
                         >
                           {coursesStartingNow.map((course, idx) => (
-                            <CourseCard key={`${key}-${idx}`} course={course} dayName={dayName} startTime={time} />
+                            <CourseCard 
+                              key={`${key}-${idx}`} 
+                              course={course} 
+                              dayName={dayName} 
+                              startTime={time}
+                            />
                           ))}
                         </td>
                       );
@@ -422,107 +788,40 @@ const Schedule = () => {
   };
 
   const ListView = () => {
-    const weekDates = getWeekDates(currentWeek);
-    
     return (
-      <div className="space-y-6">
-        {/* Navegación */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigateWeek(-1)}
-              className="p-2 hover:bg-secondary-100 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => navigateWeek(1)}
-              className="p-2 hover:bg-secondary-100 rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={goToToday}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
-            >
-              Hoy
-            </button>
-          </div>
-          <div className="text-lg font-semibold text-secondary-900">
-            {weekDates[0].toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-          </div>
-        </div>
-
-        {/* Lista por días */}
-        <div className="space-y-4">
-          {weekDates.map((date, index) => {
-            const dayName = getDayName(date);
-            const coursesForDay = getCoursesForDay(dayName);
-            
-            return (
-              <div key={index} className="card">
-                <div className={`p-4 border-b ${
-                  isToday(date) ? 'bg-primary-50 border-primary-200' : 'bg-secondary-50 border-secondary-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className={`text-lg font-semibold ${
-                      isToday(date) ? 'text-primary-700' : 'text-secondary-900'
-                    }`}>
-                      {dayName}
-                    </h3>
-                    <div className={`text-sm ${
-                      isToday(date) ? 'text-primary-600' : 'text-secondary-600'
-                    }`}>
-                      {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                    </div>
-                  </div>
+      <div className="space-y-4">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            Lista de Cursos
+          </h3>
+          <div className="space-y-3">
+            {courses.map((course, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-4 bg-secondary-50 rounded-lg border border-secondary-200"
+              >
+                <div className="flex-1">
+                  <h4 className="font-medium text-secondary-900">
+                    {course.nombre}
+                  </h4>
+                  <p className="text-sm text-secondary-600">
+                    {course.codigo} • {course.docente_nombre}
+                  </p>
+                  <p className="text-sm text-secondary-500 mt-1">
+                    {course.horario}
+                  </p>
                 </div>
-                
-                <div className="p-4">
-                  {coursesForDay.length > 0 ? (
-                    <div className="space-y-3">
-                      {coursesForDay.map((course) => {
-                        const schedules = parseSchedule(course.horario);
-                        const daySchedule = schedules.find(s => s.day === dayName);
-                        
-                        return (
-                          <div key={course.id} className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-secondary-900">
-                                {course.nombre}
-                              </h4>
-                              <p className="text-sm text-secondary-600">
-                                {course.codigo} • {course.docente_nombre}
-                              </p>
-                              {course.aula && (
-                                <p className="text-xs text-secondary-500 mt-1">
-                                  <MapPin className="w-3 h-3 inline mr-1" />
-                                  Aula {course.aula}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-primary-600">
-                                {daySchedule?.startTime} - {daySchedule?.endTime}
-                              </div>
-                            <div className="text-xs text-secondary-500">
-                              {course.horas_semanales} horas/semana
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Calendar className="w-12 h-12 text-secondary-400 mx-auto mb-3" />
-                      <p className="text-secondary-600">No hay clases programadas para este día</p>
-                    </div>
-                  )}
+                <div className="text-right">
+                  <p className="text-sm font-medium text-secondary-700">
+                    {course.aula}
+                  </p>
+                  <p className="text-xs text-secondary-500">
+                    Ciclo {course.ciclo_nombre}
+                  </p>
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
     );

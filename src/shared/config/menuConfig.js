@@ -1,4 +1,4 @@
-import { Users, BookOpen, GraduationCap, Folder, FileText, Settings, BarChart3, Home, Calendar, Award, User, HeartPulse } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Folder, FileText, Settings, BarChart3, Home, Calendar, Award, User, HeartPulse, TrendingUp } from 'lucide-react';
 
 // Importar componentes de Admin
 import AdminDashboard from '../../modules/admin/views/Dashboard.jsx';
