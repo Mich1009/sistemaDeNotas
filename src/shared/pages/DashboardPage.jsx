@@ -12,12 +12,14 @@ const DashboardPage = () => {
         activeSection,
         sidebarCollapsed,
         setActiveSection,
-        toggleSidebar
+        toggleSidebar,
+        navigateToSection
     } = useNavigationStore();
     const { logoUrl, loading: logoLoading } = useLogoContext();
 
     const handleLogout = () => {
         logout();
+        navigateToSection('dashboard');
     };
 
     // Obtener configuración basada en el rol del usuario

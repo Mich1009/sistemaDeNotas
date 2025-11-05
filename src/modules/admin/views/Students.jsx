@@ -1,159 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     GraduationCap,
     Plus,
     Search,
     Edit,
     Trash2,
+    Download
 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { useEstudiantes } from '../hooks';
-import { useCiclos } from '../hooks/useCiclos';
+import { useStudents } from '../hooks/useStudents';
 import EstudianteModal from '../components/EstudianteModal';
 
 const Students = () => {
     const {
+        // Estados
         estudiantes,
         loading,
         error,
-        createEstudiante,
-        updateEstudiante,
-        deleteEstudiante,
-        fetchEstudiantes,
-        debouncedFetchEstudiantes,
-        pagination
-    } = useEstudiantes();
-
-    const {
+        searchTerm,
+        selectedCiclo,
+        enrollmentStatus,
+        showCreateModal,
+        selectedEstudiante,
+        showEditModal,
+        page,
+        perPage,
+        pagination,
+        shouldUsePagination,
         ciclos,
-        loading: ciclosLoading,
-        getCiclosActivos
-    } = useCiclos();
-
-    // Obtener ciclos activos
-    const ciclosActivos = getCiclosActivos;
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCiclo, setSelectedCiclo] = useState(''); // Cambiar a string vacío para "Todos los ciclos"
-    const [enrollmentStatus, setEnrollmentStatus] = useState('matriculados'); // 'matriculados', 'sin_matricular', 'todos'
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [selectedEstudiante, setSelectedEstudiante] = useState(null);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [page, setPage] = useState(1);
-    const perPage = 20;
-
-    // Determinar si se debe usar paginación (solo cuando no hay filtro de ciclo específico)
-    const shouldUsePagination = !selectedCiclo;
-
-    // Manejo de búsqueda con debounce
-    const onSearchChange = (e) => {
-        const value = e.target.value;
-        setSearchTerm(value);
-        setPage(1);
+        ciclosLoading,
         
-        const cicloNombre = selectedCiclo || null;
-        const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
+        // Funciones
+        setSearchTerm,
+        setSelectedCiclo,
+        setEnrollmentStatus,
+        setShowCreateModal,
+        setSelectedEstudiante,
+        setShowEditModal,
+        setPage,
         
-        // Siempre usar debounce para búsquedas, excepto cuando se limpia el campo
-        if (value.trim() === '') {
-            // Si el campo está vacío, cargar inmediatamente sin debounce
-            if (shouldUsePagination) {
-                fetchEstudiantes(cicloNombre, estadoMatricula, 1, perPage, '');
-            } else {
-                fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, '');
-            }
-        } else {
-            // Para cualquier búsqueda con contenido, usar debounce
-            if (shouldUsePagination) {
-                debouncedFetchEstudiantes(cicloNombre, estadoMatricula, 1, perPage, value);
-            } else {
-                debouncedFetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, value);
-            }
-        }
-    };
-
-    // Paginación: anterior/siguiente (solo cuando se usa paginación)
-    const goPrevPage = () => {
-        if (shouldUsePagination && pagination.page > 1) {
-            const newPage = pagination.page - 1;
-            setPage(newPage);
-            // No llamar fetchEstudiantes aquí, se maneja en useEffect
-        }
-    };
-
-    const goNextPage = () => {
-        if (shouldUsePagination && pagination.page < pagination.totalPages) {
-            const newPage = pagination.page + 1;
-            setPage(newPage);
-            // No llamar fetchEstudiantes aquí, se maneja en useEffect
-        }
-    };
-
-    const handleCreateEstudiante = async (estudianteData) => {
-        try {
-            await createEstudiante(estudianteData);
-            toast.success('Estudiante creado exitosamente');
-            setShowCreateModal(false);
-        } catch (error) {
-            toast.error('Error al crear estudiante');
-        }
-    };
-
-    const handleUpdateEstudiante = async (estudianteData) => {
-        try {
-            await updateEstudiante(selectedEstudiante.id, estudianteData);
-            toast.success('Estudiante actualizado exitosamente');
-            setShowEditModal(false);
-            setSelectedEstudiante(null);
-        } catch (error) {
-            toast.error('Error al actualizar estudiante');
-        }
-    };
-
-    const handleDeleteEstudiante = async (id) => {
-        if (window.confirm('¿Estás seguro de que deseas inactivar este estudiante?')) {
-            try {
-                await deleteEstudiante(id);
-                toast.success('Estudiante inactivado exitosamente');
-            } catch (error) {
-                toast.error('Error al inactivar estudiante');
-            }
-        }
-    };
-
-    // Establecer el primer ciclo como filtro por defecto
-    useEffect(() => {
-        // Inicialmente no seleccionar ningún ciclo para mostrar todos los estudiantes
-        // El usuario puede filtrar manualmente por ciclo específico
-    }, [ciclos]);
-
-    // Cargar estudiantes cuando cambien ciclo/página (sin incluir searchTerm para evitar llamadas inmediatas)
-    useEffect(() => {
-        // Solo cargar automáticamente cuando cambie el ciclo o la página
-        // La búsqueda se maneja por separado con debounce en onSearchChange
-        const cicloNombre = selectedCiclo || null;
-        const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
-        
-        if (shouldUsePagination) {
-            fetchEstudiantes(cicloNombre, estadoMatricula, page, perPage, searchTerm);
-        } else {
-            fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, searchTerm);
-        }
-    }, [selectedCiclo, page, shouldUsePagination, enrollmentStatus]);
-
-
-
-    // Cargar estudiantes inicialmente
-    useEffect(() => {
-        const cicloNombre = selectedCiclo || null;
-        const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
-        
-        if (shouldUsePagination) {
-            fetchEstudiantes(cicloNombre, estadoMatricula, page, perPage, searchTerm);
-        } else {
-            fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, searchTerm);
-        }
-    }, []);
+        onSearchChange,
+        goPrevPage,
+        goNextPage,
+        handleCreateEstudiante,
+        handleUpdateEstudiante,
+        handleDeleteEstudiante,
+        handleRefresh,
+        exportStudentsToExcel
+    } = useStudents();
 
     if (loading) {
         return (
@@ -230,20 +123,21 @@ const Students = () => {
                             Total: {pagination.total} estudiantes
                         </span>
                         <button
-                            onClick={() => {
-                                const cicloNombre = selectedCiclo || null;
-                                const estadoMatricula = enrollmentStatus === 'todos' ? null : enrollmentStatus;
-                                
-                                if (shouldUsePagination) {
-                                    fetchEstudiantes(cicloNombre, estadoMatricula, page, perPage, searchTerm);
-                                } else {
-                                    fetchEstudiantes(cicloNombre, estadoMatricula, 1, 1000, searchTerm);
-                                }
-                            }}
+                            onClick={handleRefresh}
                             className="btn-secondary"
                         >
                             Actualizar
                         </button>
+                        {selectedCiclo && (
+                            <button
+                                onClick={exportStudentsToExcel}
+                                className="btn-primary flex items-center gap-2"
+                                title="Exportar estudiantes del ciclo seleccionado"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Exportar</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
