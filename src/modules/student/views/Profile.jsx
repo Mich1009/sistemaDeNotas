@@ -1,167 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import {
-    User,
-    Mail,
-    Phone,
-    Calendar,
-    Shield,
-    Edit3,
-    Save,
-    X,
-    Eye,
-    EyeOff,
-    CheckCircle,
-    AlertCircle,
-    Lock
-} from 'lucide-react';
-import { profileService } from '../services/apiStudent';
-import useAuthStore from '../../auth/store/authStore';
-import toast from 'react-hot-toast';
+import React from 'react';
+import { User, Calendar, Shield, Save, X, Eye, EyeOff, CheckCircle, AlertCircle, Lock } from 'lucide-react';
+import useStudentProfile from '../hooks/useStudentProfile';
+import ProfileData from '../components/ProfileData';
 import AcademicPerformance from '../components/AcademicPerformance';
 
 const Profile = () => {
-    const { user, setUser } = useAuthStore();
-    const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [editing, setEditing] = useState(false);
-    const [changingPassword, setChangingPassword] = useState(false);
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // Estados para el formulario de perfil
-    const [formData, setFormData] = useState({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: ''
-    });
-
-    // Estados para el formulario de contraseña
-    const [passwordData, setPasswordData] = useState({
-        current_password: '',
-        new_password: '',
-        confirm_password: ''
-    });
-
-    useEffect(() => {
-        loadProfile();
-    }, []);
-
-    const loadProfile = async () => {
-        try {
-            setLoading(true);
-            const response = await profileService.getProfile();
-            setProfile(response);
-            setFormData({
-                first_name: response.first_name || '',
-                last_name: response.last_name || '',
-                email: response.email || '',
-                phone: response.phone || ''
-            });
-        } catch (error) {
-            console.error('Error loading profile:', error);
-            toast.error('Error al cargar el perfil');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handlePasswordChange = (e) => {
-        const { name, value } = e.target;
-        setPasswordData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleSaveProfile = async () => {
-        try {
-            const response = await profileService.updateProfile(formData);
-            setProfile(response);
-            setUser(response); // Actualizar el usuario en el store
-            setEditing(false);
-            toast.success('Perfil actualizado exitosamente');
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            toast.error('Error al actualizar el perfil');
-        }
-    };
-
-    const handleChangePassword = async () => {
-        if (passwordData.new_password !== passwordData.confirm_password) {
-            toast.error('Las contraseñas no coinciden');
-            return;
-        }
-
-        if (passwordData.new_password.length < 6) {
-            toast.error('La nueva contraseña debe tener al menos 6 caracteres');
-            return;
-        }
-
-        try {
-            await profileService.changePassword({
-                current_password: passwordData.current_password,
-                new_password: passwordData.new_password
-            });
-
-            setPasswordData({
-                current_password: '',
-                new_password: '',
-                confirm_password: ''
-            });
-            setChangingPassword(false);
-            toast.success('Contraseña cambiada exitosamente');
-        } catch (error) {
-            console.error('Error changing password:', error);
-            toast.error('Error al cambiar la contraseña');
-        }
-    };
-
-    const cancelEdit = () => {
-        setFormData({
-            first_name: profile.first_name || '',
-            last_name: profile.last_name || '',
-            email: profile.email || '',
-            phone: profile.phone || ''
-        });
-        setEditing(false);
-    };
-
-    const cancelPasswordChange = () => {
-        setPasswordData({
-            current_password: '',
-            new_password: '',
-            confirm_password: ''
-        });
-        setChangingPassword(false);
-    };
-
-    const getRoleDisplayName = (role) => {
-        const roles = {
-            'ADMIN': 'Administrador',
-            'DOCENTE': 'Docente',
-            'ESTUDIANTE': 'Estudiante'
-        };
-        return roles[role] || role;
-    };
-
-    const getRoleColor = (role) => {
-        const colors = {
-            'ADMIN': 'bg-red-100 text-red-800',
-            'DOCENTE': 'bg-blue-100 text-blue-800',
-            'ESTUDIANTE': 'bg-green-100 text-green-800'
-        };
-        return colors[role] || 'bg-gray-100 text-gray-800';
-    };
+    const {
+        profile,
+        loading,
+        editing,
+        setEditing,
+        changingPassword,
+        setChangingPassword,
+        showCurrentPassword,
+        setShowCurrentPassword,
+        showNewPassword,
+        setShowNewPassword,
+        showConfirmPassword,
+        setShowConfirmPassword,
+        formData,
+        handleInputChange,
+        passwordData,
+        handlePasswordChange,
+        handleSaveProfile,
+        handleChangePassword,
+        cancelEdit,
+        cancelPasswordChange,
+        getRoleDisplayName,
+        getRoleColor
+    } = useStudentProfile();
 
     if (loading) {
         return (
@@ -211,135 +79,17 @@ const Profile = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Información del perfil */}
                 <div className="lg:col-span-2 space-y-4">
-                    <div className="card p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-semibold text-secondary-900">
-                                Información Personal
-                            </h2>
-                            {!editing ? (
-                                <button
-                                    onClick={() => setEditing(true)}
-                                    className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                                >
-                                    <Edit3 className="w-4 h-4 mr-2" />
-                                    Editar
-                                </button>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={handleSaveProfile}
-                                        className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                    >
-                                        <Save className="w-4 h-4 mr-2" />
-                                        Guardar
-                                    </button>
-                                    <button
-                                        onClick={cancelEdit}
-                                        className="flex items-center px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
-                                    >
-                                        <X className="w-4 h-4 mr-2" />
-                                        Cancelar
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Nombres
-                                </label>
-                                {editing ? (
-                                    <input
-                                        type="text"
-                                        name="first_name"
-                                        value={formData.first_name}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder="Ingresa tus nombres"
-                                    />
-                                ) : (
-                                    <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
-                                        <User className="w-4 h-4 text-secondary-500 mr-3" />
-                                        <span className="text-secondary-900">
-                                            {profile.first_name || 'No especificado'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Apellidos
-                                </label>
-                                {editing ? (
-                                    <input
-                                        type="text"
-                                        name="last_name"
-                                        value={formData.last_name}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder="Ingresa tus apellidos"
-                                    />
-                                ) : (
-                                    <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
-                                        <User className="w-4 h-4 text-secondary-500 mr-3" />
-                                        <span className="text-secondary-900">
-                                            {profile.last_name || 'No especificado'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Email
-                                </label>
-                                {editing ? (
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder="Ingresa tu email"
-                                    />
-                                ) : (
-                                    <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
-                                        <Mail className="w-4 h-4 text-secondary-500 mr-3" />
-                                        <span className="text-secondary-900">
-                                            {profile.email || 'No especificado'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Teléfono
-                                </label>
-                                {editing ? (
-                                    <input
-                                        type="tel"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder="Ingresa tu teléfono"
-                                    />
-                                ) : (
-                                    <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
-                                        <Phone className="w-4 h-4 text-secondary-500 mr-3" />
-                                        <span className="text-secondary-900">
-                                            {profile.phone || 'No especificado'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Información del perfil */}
+                    <ProfileData
+                        editing={editing}
+                        setEditing={setEditing}
+                        handleSaveProfile={handleSaveProfile}
+                        profile={profile}
+                        cancelEdit={cancelEdit}
+                        formData={formData}
+                        handleInputChange={handleInputChange}
+                    />
 
                     {/* Rendimiento Académico */}
                     <AcademicPerformance />
@@ -349,15 +99,11 @@ const Profile = () => {
                 {/* Información de la cuenta */}
                 <div className="space-y-4">
                     <div className="card p-6">
-                        <h3 className="text-lg font-semibold text-secondary-900 mb-4">
-                            Información de la Cuenta
-                        </h3>
+                        <h3 className="text-lg font-semibold text-secondary-900 mb-4">Información de la Cuenta</h3>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    DNI
-                                </label>
+                                <label className="block text-sm font-medium text-secondary-700 mb-2">DNI</label>
                                 <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
                                     <Shield className="w-4 h-4 text-secondary-500 mr-3" />
                                     <span className="text-secondary-900">{profile.dni}</span>
@@ -365,9 +111,7 @@ const Profile = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Rol
-                                </label>
+                                <label className="block text-sm font-medium text-secondary-700 mb-2">Rol</label>
                                 <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(profile.role)}`}>
                                         {getRoleDisplayName(profile.role)}
@@ -376,9 +120,7 @@ const Profile = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Estado
-                                </label>
+                                <label className="block text-sm font-medium text-secondary-700 mb-2">Estado</label>
                                 <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
                                     {profile.is_active ? (
                                         <>
@@ -395,9 +137,7 @@ const Profile = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                                    Fecha de Registro
-                                </label>
+                                <label className="block text-sm font-medium text-secondary-700 mb-2">Fecha de Registro</label>
                                 <div className="flex items-center p-3 bg-secondary-50 rounded-lg">
                                     <Calendar className="w-4 h-4 text-secondary-500 mr-3" />
                                     <span className="text-secondary-900">

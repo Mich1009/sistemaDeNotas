@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, GraduationCap, BookOpen, FileText, Settings, TrendingUp, Calendar, RefreshCw, BarChart3, UserPlus } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, FileText, Settings, TrendingUp, Calendar, RefreshCw, BarChart3, UserPlus, Folder } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Link } from 'react-router-dom';
+import useNavigationStore from '../../../shared/store/navigationStore';
 import { toast } from 'react-hot-toast';
 import { useDashboard } from '../hooks/useDashboard';
 import { dashboardService } from '../services/apiAdmin';
@@ -174,17 +175,27 @@ const Dashboard = () => {
         </Link>
     );
 
-    const QuickAction = ({ title, description, icon: Icon, link, color }) => (
-        <Link to={link} className="card p-3 hover:shadow-lg transition-shadow cursor-pointer flex items-center space-x-2">
-            <div className={`p-3 rounded-full ${color}`}>
-                <Icon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-                <h3 className="font-semibold text-secondary-900">{title}</h3>
-                <p className="text-sm text-secondary-600 mt-1">{description}</p>
-            </div>
-        </Link>
-    );
+    const QuickAction = ({ title, description, icon: Icon, sectionId, color }) => {
+        const { navigateToSection, expandSidebar } = useNavigationStore();
+        const handleClick = () => {
+            if (sectionId) {
+                navigateToSection(sectionId);
+                expandSidebar();
+            }
+        };
+
+        return (
+            <button onClick={handleClick} className="card p-3 hover:shadow-lg transition-shadow cursor-pointer flex items-center space-x-2 text-left w-full">
+                <div className={`p-3 rounded-full ${color}`}>
+                    <Icon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-secondary-900">{title}</h3>
+                    <p className="text-sm text-secondary-600 mt-1">{description}</p>
+                </div>
+            </button>
+        );
+    };
 
     return (
         <div className="space-y-4 p-3">
@@ -375,42 +386,42 @@ const Dashboard = () => {
                             title="Crear Usuario"
                             description="Registrar nuevo estudiante, docente"
                             icon={UserPlus}
-                            link="/admin/users/create"
+                            sectionId="students"
                             color="bg-primary-500"
                         />
                         <QuickAction
                             title="Gestionar Cursos"
                             description="Crear, editar y asignar cursos"
                             icon={BookOpen}
-                            link="/admin/courses"
+                            sectionId="courses"
                             color="bg-secondary-500"
                         />
                         <QuickAction
                             title="Ver Reportes"
                             description="Generar reportes de notas y estadísticas"
                             icon={BarChart3}
-                            link="/admin/reports"
+                            sectionId="reports"
                             color="bg-green-500"
                         />
                         <QuickAction
                             title="Configuración"
                             description="Configurar parámetros del sistema"
                             icon={Settings}
-                            link="/admin/settings"
+                            sectionId="settings"
                             color="bg-gray-500"
                         />
                         <QuickAction
-                            title="Exportar Datos"
-                            description="Exportar información en Excel o PDF"
-                            icon={FileText}
-                            link="/admin/export"
+                            title="Matriculas"
+                            description="Gestionar matrículas de estudiantes de todos los ciclos"
+                            icon={Folder}
+                            sectionId="matriculas"
                             color="bg-indigo-500"
                         />
                         <QuickAction
-                            title="Estadísticas"
-                            description="Ver métricas detalladas del sistema"
-                            icon={TrendingUp}
-                            link="/admin/analytics"
+                            title="Docentes"
+                            description="Gestionar información de docentes"
+                            icon={Users}
+                            sectionId="docentes"
                             color="bg-red-500"
                         />
                     </div>

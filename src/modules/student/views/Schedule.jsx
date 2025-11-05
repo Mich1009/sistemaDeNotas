@@ -787,6 +787,46 @@ const Schedule = () => {
     );
   };
 
+  const ListView = () => {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            Lista de Cursos
+          </h3>
+          <div className="space-y-3">
+            {courses.map((course, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-4 bg-secondary-50 rounded-lg border border-secondary-200"
+              >
+                <div className="flex-1">
+                  <h4 className="font-medium text-secondary-900">
+                    {course.nombre}
+                  </h4>
+                  <p className="text-sm text-secondary-600">
+                    {course.codigo} • {course.docente_nombre}
+                  </p>
+                  <p className="text-sm text-secondary-500 mt-1">
+                    {course.horario}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-secondary-700">
+                    {course.aula}
+                  </p>
+                  <p className="text-xs text-secondary-500">
+                    Ciclo {course.ciclo_nombre}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
