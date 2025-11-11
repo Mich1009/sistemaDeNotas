@@ -193,5 +193,13 @@ export const reportesService = {
         const params = estado ? `?estado=${estado}` : '';
         const response = await api.get(`/admin/reportes/estudiantes-por-ciclo/${cicloId}${params}`);
         return response.data;
+    },
+    getAcademicPerformanceByDni: async (dni) => {
+        const response = await api.get(`/admin/estudiantes/${dni}/academic-performance`);
+        return response.data;
+    },
+    getEvaluationDescriptions: async (cursoId) => {
+        const response = await api.get(`/admin/estudiantes/nota/${cursoId}/evaluation-descriptions`);
+        return response.data;
     }
 };

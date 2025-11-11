@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
 import ReactFlow, { MiniMap, Controls, Background, Panel, ReactFlowProvider, MarkerType, Handle, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Filter, RefreshCw, Network } from 'lucide-react';
+import { Filter, RefreshCw, Network, ScanEye } from 'lucide-react';
 import { useReportesDinamicos } from '../hooks';
 import { CarreraNodo, CicloNodo, CursoNodo, PanelInfo, PanelCicloPuntos } from './componetReport';
 import { interpolateSpectral } from 'd3';
@@ -17,7 +17,7 @@ const CicloNodoWrapper = React.memo(({ onVerEstudiantes, ...props }) => {
 });
 
 // Tipos de nodos personalizados
-const ReportesDinamicos = ({ abrirModalEstudiantes: abrirModalEstudiantesProp }) => {
+const ReportesDinamicos = ({ abrirModalEstudiantes: abrirModalEstudiantesProp, toggleViewTypeReport }) => {
     const {
         // Estados
         nodes,
@@ -92,6 +92,13 @@ const ReportesDinamicos = ({ abrirModalEstudiantes: abrirModalEstudiantesProp })
                         >
                             <RefreshCw className="w-4 h-4" />
                             <span>Actualizar</span>
+                        </button>
+                        <button
+                            onClick={toggleViewTypeReport}
+                            className="flex items-center space-x-1 px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm"
+                        >
+                            <ScanEye className="w-4 h-4" />
+                            <span>Ver Reporte por Estudiante</span>
                         </button>
                     </div>
 
